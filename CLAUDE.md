@@ -38,7 +38,7 @@ MFFL (keeper: one keeper, costs a 6th-round pick each year), 🪓 Guillotine MFF
 ## Session routine
 
 - **Start:** read this file and `docs/PROGRESS.md`, summarize, propose the next step.
-- **End:** update `docs/PROGRESS.md` (and this file's layout section if files changed).
+- **End:** update `docs/PROGRESS.md`, `docs/IDEAS.md` (and this file's layout section if files changed).
 
 ## File layout
 
@@ -61,6 +61,7 @@ js/ui.js              display: draws each tab
 js/main.js            wires it together: two-pass loading (saved copies, then live), league picker, tabs, refresh on return
 sw.js                 service worker: saves the page's own files so it opens offline
 docs/PROGRESS.md      dated session log and next step
+docs/IDEAS.md         parked ideas (ESPN leagues, sharing with friends)
 data/dynasty-values.json   FantasyPros dynasty values (written by the updater, don't edit by hand)
 tools/update-dynasty.js    the updater (Node, no installs needed)
 .github/workflows/dynasty-values.yml   runs the updater daily on GitHub

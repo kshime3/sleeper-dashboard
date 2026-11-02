@@ -47,4 +47,6 @@
 - Added **trade idea filters** (owner asked): Pieces (any / 1 only / 2 only), Position (ideas that include that position), Picks (dynasty only: any / no picks / picks only). Applied before choosing the top ideas; remembered (sd_idea_filter); picks/position filters ignored in leagues where they don't apply. Traded picks in ideas show whose they were.
 - ESPN: owner's two ESPN leagues are **private** (needs espn_s2/SWID cookies → relay or hourly GitHub fetch; owner to follow up with league IDs later).
 
-**Next:** owner tests idea filters; ESPN leagues when the owner follows up.
+- Wrote docs/IDEAS.md: ESPN leagues plan (private leagues: relay vs hourly robot) and the "share with friends" idea (enter a Sleeper username).
+
+**Next:** owner tests idea filters; owner deciding on "share with friends"; ESPN leagues when the owner follows up.
