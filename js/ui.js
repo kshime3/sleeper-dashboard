@@ -176,6 +176,12 @@ function recentText(b) {
 }
 
 function whyText(b) {
+  if (b.fp) {
+    const src = 'FantasyPros ' + app.fp.source.month;
+    return b.fp.listed
+      ? src + (b.fp.kind ? ' ' + b.fp.kind : '') + ' value: ' + b.value + (b.fp.chg ? ' (' + b.fp.chg + ' since last month)' : '')
+      : 'Not on the ' + src + ' chart, so he gets their "All other ' + b.player.pos + 's" value: ' + b.value + ' (est.)';
+  }
   return 'Blend ' + b.blended.toFixed(1) + '/g (season ' + b.season.ppg.toFixed(1) +
     (b.recentPpg != null ? ', recent ' + b.recentPpg.toFixed(1) : ', no recent games') + ')' +
     ' − best free agent ' + b.player.pos + ' (' + b.replWho + ') ' + b.repl.toFixed(1) +
@@ -183,6 +189,11 @@ function whyText(b) {
     (b.age.text ? ' · age ' + b.player.age + ': ' + b.age.text : '') +
     (b.inj.text ? ' · ' + b.player.injury + ': ' + b.inj.text : '') +
     ' → value ' + b.value.toFixed(1);
+}
+
+function fmtValue(b) {
+  if (b.fp) return b.value + (b.fp.listed ? '' : ' est.');
+  return b.value.toFixed(1);
 }
 
 function tradeCard(b) {
@@ -193,7 +204,7 @@ function tradeCard(b) {
     '<div class="pmeta">' + esc(p.team || 'no team') + (p.age ? ' · age ' + p.age : '') + (p.injury ? ' · ' + esc(p.injury) : '') + '</div>' +
     '<div class="tstat"><span>Season</span><b>' + b.season.total.toFixed(1) + '</b> <span class="pmeta">(' + b.season.ppg.toFixed(1) + '/g, ' + b.season.games + ' g)</span></div>' +
     '<div class="tstat"><span>Wk ' + b.recent.map(r => r.week).join(', ') + '</span><b>' + recentText(b) + '</b></div>' +
-    '<details class="why"><summary>Value <b>' + b.value.toFixed(1) + '</b> — why?</summary><div class="pmeta">' + esc(whyText(b)) + '</div></details>' +
+    '<details class="why"><summary>Value <b>' + fmtValue(b) + '</b> — why?</summary><div class="pmeta">' + esc(whyText(b)) + '</div></details>' +
   '</div>';
 }
 
@@ -210,6 +221,7 @@ function tradeResult(cmp) {
     if (cmp.spotsChange > 0) html += ' You\'d open ' + cmp.spotsChange + ' roster spot' + (cmp.spotsChange > 1 ? 's' : '') + ' for a free-agent pickup.';
     html += '</div>';
   }
+  if (cmp.fp) html += '<div class="pmeta small credit">Values: <a href="' + esc(cmp.fp.source.url) + '" target="_blank" rel="noopener">FantasyPros Dynasty Trade Value Chart (' + esc(cmp.fp.source.month) + ')</a>. Values © FantasyPros.</div>';
   html += '<div class="tcols"><div><h3>You give</h3>' + (cmp.give.rows.map(tradeCard).join('') || '<div class="pmeta">Tap your players below.</div>') + '</div>' +
     '<div><h3>You get</h3>' + (cmp.get.rows.map(tradeCard).join('') || '<div class="pmeta">Tap their players below.</div>') + '</div></div>';
   return html + '</div>';
@@ -226,7 +238,7 @@ function pickList(title, ids, values, picked, side, pos) {
     return '<button class="row pick' + (on ? ' on' : '') + '" data-tpick="' + side + '" data-id="' + esc(p.id) + '">' +
       '<div class="slot ' + esc(p.pos) + '">' + esc(p.pos) + '</div>' +
       '<div><div class="pname">' + (on ? '✓ ' : '') + esc(p.name) + tags + '</div><div class="pmeta">' + esc(p.team || 'no team') + (p.age ? ' · ' + p.age + ' yrs' : '') + ' · ' + b.blended.toFixed(1) + '/g</div></div>' +
-      '<div class="ppts">' + b.value.toFixed(1) + '<div class="pmeta">value</div></div></button>';
+      '<div class="ppts">' + fmtValue(b) + '<div class="pmeta">value</div></div></button>';
   }).join('') + '</div>';
 }
 
@@ -251,6 +263,12 @@ function renderTrade(t) {
     '</select>' + (t.state.give.length || t.state.get.length ? '<button class="link" data-treset="picks">Clear picks</button>' : '') + '</div>' +
     '<div id="trade-dyn">' + renderTradeDynamic(t) + '</div>' +
     '<div class="card"><details class="tsettings"><summary>How values work · adjust</summary>' +
+      (t.fpAvailable
+        ? '<label class="toggle"><input type="checkbox" data-tset="useFP"' + (s.useFP ? ' checked' : '') + '> Use FantasyPros dynasty values</label>' +
+          '<p class="small">' + (s.useFP
+            ? 'Values come from the <a href="' + esc(app.fp.source.url) + '" target="_blank" rel="noopener">FantasyPros Dynasty Trade Value Chart (' + esc(app.fp.source.month) + ')</a> (superflex values for QBs in this league). Players not on their chart get FantasyPros\' "All other" value, marked est. The chart is checked daily and switches to the new month\'s article once it\'s published. The sliders below only apply when this is off.'
+            : 'Off: using the formula below instead.') + '</p>'
+        : '') +
       '<p class="small">A player\'s <b>value</b> = how many more points per game he scores than the <b>best free agent at his position</b> in this league, adjusted for age and injury. Anyone no better than a free agent counts as 0. Points use this league\'s scoring.</p>' +
       slider('recentWeight', 'Recent weeks vs. season', s.recentWeight, 'How much of the points-per-game blend comes from the last ' + CONFIG.trade.recentWeeks + ' weeks (the rest is the whole season). 0% = season only, 100% = recent only.') +
       slider('ageEffect', 'Age matters', s.ageEffect, 'Young players get up to +15%; each year past peak age (QB 30, RB 25, WR/TE 27) costs RB 10%, WR/TE 6%, QB 4%. Starts at 100% in dynasty, 50% in keeper, 0% in redraft.') +

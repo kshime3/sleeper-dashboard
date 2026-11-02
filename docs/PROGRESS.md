@@ -17,4 +17,7 @@
 - Added position filter chips to the trade player lists (owner asked). Owner confirmed redraft values look right.
 - Owner wants dynasty values from the FantasyPros monthly "Dynasty Trade Value Chart" article (use the current month's if published, else last month's). Waiting on www.fantasypros.com being allowed in the cloud environment to see the page format.
 
-**Next:** FantasyPros dynasty values, then Standings & Weekly Recap.
+- Built **FantasyPros dynasty values**: daily GitHub Action finds this month's article (falls back to last month's; November 2026 not up yet, so October), saves 299 player values (all matched) plus 2027/2028 rookie pick values. MFFL Dynasty trades now use them (superflex for QBs, "All other" value marked est. for unlisted players), with credit and link; switch in "How values work" turns it off. Other leagues unchanged.
+- Fixed: two-way players (Travis Hunter, listed DB) were missing from the player list (saved list renamed sd_players_v2; old copy removed).
+
+**Next:** owner tests, then Standings & Weekly Recap. Possible later: dynasty draft picks in trades (values already saved).

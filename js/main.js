@@ -5,6 +5,7 @@ const app = {
   leagueId: null,
   tab: 'team',
   tradePos: 'ALL',
+  fp: null,            // FantasyPros dynasty values (data/dynasty-values.json)
   waiverOpts: Object.assign({ filter: 'ALL', sort: 'trend' }, Store.get('sd_waiver_opts') || {}),
 };
 
@@ -58,6 +59,7 @@ async function showLeague() {
         for (let w = week - 1; w >= 1 && weeks.length < CONFIG.trade.recentWeeks; w--) weeks.push(w);
         const [seasonStats, ...weekly] = await Promise.all([loadStats(app.me.season, 0)].concat(weeks.map(w => loadStats(app.me.season, w).catch(() => ({})))));
         d.tradeStats = { seasonStats, weekStats: weeks.map((w, i) => ({ week: w, stats: weekly[i] })) };
+        app.fp = await loadDynastyValues();
       }
       if (!stillHere()) return;
       d.byes = byes;
@@ -114,12 +116,14 @@ function buildTrade(league, d) {
   const settings = tradeSettingsFor(league);
   const values = tradeValues({
     league, rosters: d.rosters, players: app.players,
-    seasonStats: d.tradeStats.seasonStats, weekStats: d.tradeStats.weekStats, byes: d.byes,
+    seasonStats: d.tradeStats.seasonStats, weekStats: d.tradeStats.weekStats, byes: d.byes, fp: app.fp,
   }, settings);
+  const cmp = compareTrade(values, d.trade.give, d.trade.get);
+  cmp.fp = usesFP(league, settings, app.fp) ? app.fp : null;
   return {
     hasTeam, settings, values, state: d.trade, pos: app.tradePos, positions: leaguePositions(league), opponents: others, oppName: opp.name,
     myIds: mine.players, oppIds: opp.roster.players,
-    cmp: compareTrade(values, d.trade.give, d.trade.get),
+    cmp, fpAvailable: !!app.fp && leagueFormat(league) === 'dynasty',
   };
 }
 
@@ -163,6 +167,12 @@ $('#view').addEventListener('input', e => {
   if (!key) return;
   const league = currentLeague(), d = app.leagueData[app.leagueId];
   const settings = tradeSettingsFor(league);
+  if (e.target.type === 'checkbox') {
+    settings[key] = e.target.checked;
+    Store.set('sd_trade_' + league.league_id, settings);
+    showLeague(); // redraw everything (the explanation text changes too)
+    return;
+  }
   settings[key] = Number(e.target.value);
   Store.set('sd_trade_' + league.league_id, settings);
   $('[data-tlabel="' + key + '"]').textContent = settings[key] + '%';

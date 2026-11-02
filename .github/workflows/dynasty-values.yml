@@ -1,0 +1,27 @@
+# Once a day, check for a new FantasyPros dynasty trade value article and save its values.
+# Also runs when you press "Run workflow" on the Actions tab.
+name: Update dynasty values
+on:
+  schedule:
+    - cron: '23 14 * * *'   # every day at 14:23 UTC (morning in the US)
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node tools/update-dynasty.js
+      - name: Save if changed
+        run: |
+          if [ -n "$(git status --porcelain data/)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898699+github-actions[bot]@users.noreply.github.com"
+            git add data/dynasty-values.json
+            git commit -m "Dynasty values: $(node -p "require('./data/dynasty-values.json').source.month")"
+            git push
+          fi

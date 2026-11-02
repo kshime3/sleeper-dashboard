@@ -19,7 +19,7 @@ function isFresh(saved, hours) {
 }
 
 // ---------- Player list (big: ~15 MB from Sleeper, ~170 KB after trimming) ----------
-const PLAYER_KEY = 'sd_players_v1';
+const PLAYER_KEY = 'sd_players_v2'; // v2: includes two-way players
 const FANTASY_POSITIONS = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF'];
 
 // Keep only fantasy-relevant players and only the fields we use, so it fits in phone storage.
@@ -27,13 +27,17 @@ function trimPlayers(raw) {
   const out = {};
   for (const id in raw) {
     const p = raw[id];
-    if (!FANTASY_POSITIONS.includes(p.position)) continue;
+    // Two-way players (e.g. Travis Hunter: listed DB, plays WR) count under their fantasy position.
+    const pos = FANTASY_POSITIONS.includes(p.position) ? p.position
+      : (p.fantasy_positions || []).find(x => FANTASY_POSITIONS.includes(x));
+    if (!pos) continue;
     if (!p.active && !p.team) continue;
-    const name = p.position === 'DEF'
+    const name = pos === 'DEF'
       ? (p.first_name + ' ' + p.last_name)
       : (p.full_name || ((p.first_name || '') + ' ' + (p.last_name || '')).trim());
-    const fp = (p.fantasy_positions && p.fantasy_positions.length > 1) ? p.fantasy_positions : 0;
-    out[id] = [name, p.position, p.team || '', p.injury_status || '', p.age || 0, p.years_exp || 0, p.search_rank || 9999999, fp];
+    const fpos = (p.fantasy_positions || []).filter(x => FANTASY_POSITIONS.includes(x));
+    const fp = fpos.length > 1 ? fpos : 0;
+    out[id] = [name, pos, p.team || '', p.injury_status || '', p.age || 0, p.years_exp || 0, p.search_rank || 9999999, fp];
   }
   return out;
 }
@@ -48,6 +52,7 @@ function expandPlayers(trimmed) {
 }
 
 async function loadPlayers(force) {
+  try { localStorage.removeItem('sd_players_v1'); } catch (e) { /* old saved copy, no longer used */ }
   const saved = Store.get(PLAYER_KEY);
   if (!force && isFresh(saved, CONFIG.playerCacheHours)) {
     return { players: expandPlayers(saved.data), savedAt: saved.savedAt };

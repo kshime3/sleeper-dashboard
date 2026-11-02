@@ -14,7 +14,40 @@ function leagueFormat(league) {
 
 function defaultTradeSettings(league) {
   const t = CONFIG.trade;
-  return { recentWeight: t.recentWeight, ageEffect: t.ageEffect[leagueFormat(league)] || 0, injuryEffect: t.injuryEffect };
+  return { recentWeight: t.recentWeight, ageEffect: t.ageEffect[leagueFormat(league)] || 0, injuryEffect: t.injuryEffect, useFP: true };
+}
+
+// FantasyPros dynasty values, saved into data/dynasty-values.json once a day by a GitHub Action
+// (tools/update-dynasty.js). Same website as this page, so the phone can read it.
+let dynastyPromise = null;
+function loadDynastyValues() {
+  if (!dynastyPromise) {
+    dynastyPromise = fetch('data/dynasty-values.json', { cache: 'no-cache' })
+      .then(r => r.ok ? r.json() : null).catch(() => null);
+  }
+  return dynastyPromise;
+}
+
+// Does this league use FantasyPros values? (dynasty leagues, when the file loaded and the switch is on)
+function usesFP(league, settings, fp) {
+  return !!(fp && settings.useFP && leagueFormat(league) === 'dynasty');
+}
+
+// FantasyPros value for one player in this league: superflex value for QBs in superflex leagues,
+// TE-premium value for TEs if the league pays extra for TE catches. Unlisted players get
+// FantasyPros' own "All other QBs/RBs/WRs/TEs" value.
+function fpValue(fp, league, p) {
+  const sf = (league.roster_positions || []).includes('SUPER_FLEX');
+  const tep = (league.scoring_settings || {}).bonus_rec_te > 0;
+  const pick = row => (p.pos === 'QB' && sf && row.sf != null) ? row.sf : (p.pos === 'TE' && tep && row.tep != null) ? row.tep : row.v;
+  const row = fp.players[p.id];
+  if (row) {
+    const parts = String(row.chg || '').split(' / ');
+    const chg = parts.length > 1 && ((p.pos === 'QB' && sf) || (p.pos === 'TE' && tep)) ? parts[1] : parts[0];
+    return { value: pick(row), listed: true, chg: chg && chg !== '-' ? chg : '', kind: (p.pos === 'QB' && sf) ? 'superflex' : (p.pos === 'TE' && tep) ? 'TE-premium' : '' };
+  }
+  const other = fp.others[p.pos];
+  return { value: other ? pick(other) : 0, listed: false, chg: '', kind: '' };
 }
 
 function ageFactor(p, strength) {
@@ -68,11 +101,18 @@ function tradeValues(ctx, settings) {
     if (b && b.blended > (repl[p.pos] || 0)) { repl[p.pos] = b.blended; replWho[p.pos] = p.name; }
   }
 
+  const fp = usesFP(league, settings, ctx.fp) ? ctx.fp : null;
   const values = {};
   for (const r of rosters) {
     for (const id of r.players || []) {
       const b = base(id);
       if (!b) continue;
+      if (fp) {
+        b.fp = fpValue(fp, league, b.player);
+        b.value = b.fp.value;
+        values[id] = b;
+        continue;
+      }
       const pos = b.player.pos;
       const over = b.blended - (repl[pos] || 0);
       const age = ageFactor(b.player, settings.ageEffect);
