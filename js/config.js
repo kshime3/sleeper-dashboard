@@ -5,7 +5,7 @@ const CONFIG = {
   playerSiteCacheHours: 2,      // re-check the small player list on our site (rebuilt hourly) this often
   scheduleCacheHours: 24,       // same for the NFL schedule (used for bye weeks)
   refreshAfterAwayMinutes: 5,
-  liveRefreshSeconds: 60,       // during live games, My Team updates scores this often   // reopening the app after this long in the background refreshes it
+  liveRefreshSeconds: 60,       // during live games, My Team and Game Day update scores this often   // reopening the app after this long in the background refreshes it
 
   waivers: {
     trendingHours: 24,     // "trending" = most added across all Sleeper leagues in this many hours
@@ -34,8 +34,9 @@ const CONFIG = {
   // Your notes about each league (matched by league name). Sleeper's own settings
   // don't always say this clearly, so we write it down.
   leagueNotes: {
-    'MFFL': { format: 'keeper', note: 'One keeper, costs a 6th-round pick every year' },
-    'MFFL Dynasty': { format: 'dynasty' },
+    'MFFL': { format: 'keeper', short: 'MFFL', note: 'One keeper, costs a 6th-round pick every year' },
+    'MFFL Dynasty': { format: 'dynasty', short: 'Dynasty' },
+    'LocusLeague': { short: 'Locus' },
   },
 
   // Which positions can play in each lineup slot.

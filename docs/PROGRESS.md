@@ -36,4 +36,6 @@
 - Owner chose ESPN for game info (allowed site.api.espn.com).
 - Done polish 3: each player shows his game (vs/@ opponent, kickoff day/time; live quarter, clock, score, 🏈 possession, 🔴 red zone; final W/L score). Lineup check: problems whose game already started/ended are greyed with 🔒 ("too late to swap" / "his game is over"); bench suggestions only include players whose game hasn't started. Live scores refresh every minute on My Team while games are on (tested with a faked live game; also falls back to Sleeper's schedule if ESPN is down).
 
-**Next:** owner tests on game day; then polish 4 (Game Day tab: all my players from every league, live).
+- Done polish 4: **Game Day tab** (📺, 2nd tab; league picker hidden there). Score card per league (your score, opponent's, how many players each side still has to play; guillotine shows rank if alive). Every player you own listed once, grouped 🟢 Playing now / 🕐 Still to play / ✅ Done / 😴 Not playing (bench mode), with live game line and a tag per league (start/bench, points if he's in 2+ leagues). Starters / Starters + bench switch. Live updates every minute for all leagues. Tested with a faked live game.
+
+**Next:** owner tests; then polish 5 (player details on tap).

@@ -3,11 +3,12 @@ const app = {
   me: null, players: null, playersSavedAt: null, schedule: null,
   leagueData: {},      // league_id -> { rosters, users, matchups }
   leagueId: null,
-  tab: ['team', 'waivers', 'trade', 'standings'].includes(Store.get('sd_tab')) ? Store.get('sd_tab') : 'team', // reopen on your last tab
+  tab: ['team', 'gameday', 'waivers', 'trade', 'standings'].includes(Store.get('sd_tab')) ? Store.get('sd_tab') : 'team', // reopen on your last tab
   tradePos: 'ALL',
   uiKeep: {},          // league_id -> on-screen choices kept across refreshes
   loadedAt: 0,
   fp: null,            // FantasyPros dynasty values (data/dynasty-values.json)
+  gdOpts: Object.assign({ includeBench: false }, Store.get('sd_gameday_opts') || {}),
   waiverOpts: Object.assign({ filter: 'ALL', sort: 'trend' }, Store.get('sd_waiver_opts') || {}),
 };
 
@@ -40,6 +41,8 @@ async function showLeague() {
 
   const week = currentWeek();
   const tab = app.tab;
+  document.body.classList.toggle('no-picker', tab === 'gameday'); // Game Day covers every league
+  if (tab === 'gameday') return showGameDay(week);
   const stillHere = () => app.leagueId === league.league_id && app.tab === tab; // you may switch while it loads
   try {
     if (!app.leagueData[league.league_id]) {
@@ -304,6 +307,42 @@ async function reloadAll(forcePlayers) {
   }
 }
 
+// ---------- Game Day tab: every league at once ----------
+async function loadAllLeagues(week) {
+  await Promise.all(app.me.leagues.map(async league => {
+    const id = league.league_id;
+    if (!app.leagueData[id]) app.leagueData[id] = Object.assign(await loadLeague(league, week), app.uiKeep[id] || {});
+  }));
+}
+
+async function showGameDay(week) {
+  const view = $('#view');
+  try {
+    if (app.me.leagues.some(l => !app.leagueData[l.league_id])) {
+      if (NET.mode !== 'cache') view.innerHTML = '<p class="muted center">Loading all your leagues…</p>';
+      await loadAllLeagues(week);
+    }
+    if (app.tab !== 'gameday') return;
+    const gd = analyzeGameDay({
+      leagues: app.me.leagues, leagueData: app.leagueData, players: app.players, games: app.games,
+      userId: app.me.user.user_id, includeBench: app.gdOpts.includeBench,
+    });
+    const note = app.games && app.games.anyLive ? '🟢 Games live — updates every minute' + (app.liveAt ? ' (last ' + timeOf(app.liveAt) + ')' : '') : '';
+    view.innerHTML = renderGameDay(gd, app.gdOpts, note);
+    scheduleLive();
+  } catch (err) {
+    if (app.tab === 'gameday' && NET.mode !== 'cache') view.innerHTML = renderError(err.message);
+  }
+}
+
+$('#view').addEventListener('click', e => {
+  const b = e.target.closest('[data-gdbench]');
+  if (!b) return;
+  app.gdOpts.includeBench = b.dataset.gdbench === '1';
+  Store.set('sd_gameday_opts', app.gdOpts);
+  showLeague();
+});
+
 // ---------- Live scores on game day ----------
 // While any NFL game is being played and you're looking at My Team, quietly re-download this
 // league's scores and the NFL scoreboard every minute (paused while the app is in the background).
@@ -314,21 +353,27 @@ function scheduleLive() {
 }
 
 async function refreshLive() {
-  if (document.hidden || app.tab !== 'team' || NET.mode !== 'network') return scheduleLive();
-  const league = currentLeague(), d = app.leagueData[app.leagueId];
-  if (!league || !d) return scheduleLive();
+  const tab = app.tab;
+  if (document.hidden || (tab !== 'team' && tab !== 'gameday') || NET.mode !== 'network') return scheduleLive();
+  // My Team: just this league. Game Day: every league you've loaded.
+  const ids = tab === 'gameday' ? Object.keys(app.leagueData) : [app.leagueId];
+  if (!ids.length || !app.leagueData[ids[0]]) return scheduleLive();
   try {
     const week = currentWeek();
-    const [matchups, rosters, games] = await Promise.all([
-      getJSON(SLEEPER + '/league/' + league.league_id + '/matchups/' + week),
-      getJSON(SLEEPER + '/league/' + league.league_id + '/rosters'),
-      loadGames(app.me.season, week),
-    ]);
-    d.matchups = matchups; d.rosters = rosters; app.games = games;
-    if (d.recapMatchups) d.recapMatchups[week] = matchups;
-    d.waivers = null; // lineups may have changed
+    const [games, ...fresh] = await Promise.all([loadGames(app.me.season, week)].concat(ids.map(id => Promise.all([
+      getJSON(SLEEPER + '/league/' + id + '/matchups/' + week),
+      getJSON(SLEEPER + '/league/' + id + '/rosters'),
+    ]))));
+    app.games = games;
+    ids.forEach((id, i) => {
+      const d = app.leagueData[id];
+      if (!d) return;
+      d.matchups = fresh[i][0]; d.rosters = fresh[i][1];
+      if (d.recapMatchups) d.recapMatchups[week] = d.matchups;
+      d.waivers = null; // lineups may have changed
+    });
     app.liveAt = Date.now();
-    if (app.tab === 'team' && app.leagueId === league.league_id) await showLeague();
+    if (app.tab === tab) await showLeague();
     else scheduleLive();
   } catch (e) {
     scheduleLive(); // try again next minute

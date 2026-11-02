@@ -29,7 +29,7 @@ The owner is not very technical. Same working style as their Chained Dice projec
 - **Saved copies / offline:** every download goes through `cachedJSON` (js/sleeper.js), which also stores it in Cache Storage (`sd-data-v1`, not localStorage). On open, `reloadAll` draws once from saved copies (`NET.mode = 'cache'`, instant), then loads live and redraws; with no signal the saved copy is used and the status says Offline. Anything started in the cache pass must finish before the live pass (allSettled), or it will run in network mode.
 
 - **ESPN scoreboard** `site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?seasontype=2&week=<w>&dates=<season>` — unofficial, free, CORS allowed. Team code fix: ESPN WSH = Sleeper WAS. ESPN returns 403 to headless browsers: Playwright tests must set a phone userAgent AND `extraHTTPHeaders: {'sec-ch-ua': '"Chromium";v="140", "Google Chrome";v="140"'}`. Failures are quiet (don't mark the app Offline).
-- **Live scores:** while any game is live and My Team is open, `refreshLive` (main.js) re-downloads this league's matchups/rosters + the scoreboard every `CONFIG.liveRefreshSeconds`; paused in the background.
+- **Live scores:** while any game is live and My Team or Game Day is open, `refreshLive` (main.js) re-downloads matchups/rosters (this league, or every league on Game Day) + the scoreboard every `CONFIG.liveRefreshSeconds`; paused in the background.
 
 ## Leagues (2026)
 
@@ -55,6 +55,7 @@ js/myteam.js          logic: My Team (lineup, matchup, guillotine status, flags,
 js/waivers.js         logic: Waiver Wire (free agents, trending adds, weak spots, upgrade stars, FAAB)
 js/trade.js           logic: Trade Analyzer (value = blended pts/g − best free agent at the position, × age × injury; settings per league)
 js/standings.js       logic: Standings (guillotine: survivors first) and Weekly Recap (top/low score, blowout, closest, player of the week, best bench, most left on bench) + chat text
+js/gameday.js         logic: Game Day tab (score card per league, every player you own once, grouped Playing now / Still to play / Done / Not playing)
 js/ui.js              display: draws each tab
 js/main.js            wires it together: two-pass loading (saved copies, then live), league picker, tabs, refresh on return
 sw.js                 service worker: saves the page's own files so it opens offline

@@ -340,3 +340,51 @@ function renderStandings(st, recap, league, weeks, recapWeek, currentWk) {
   }
   return html + '</div>';
 }
+
+// ---------- Game Day ----------
+function renderGameDay(gd, opts, liveNote) {
+  const f = n => Number(n || 0).toFixed(2);
+  let html = '<div class="boards">';
+  for (const b of gd.scoreboards) {
+    let right = '', cls = '';
+    if (b.opp) {
+      const diff = b.me.points - b.opp.points;
+      cls = diff > 0 ? 'lead' : diff < 0 ? 'trail' : '';
+      right = '<div class="bopp"><span class="pmeta">vs</span> ' + esc(b.opp.name) + ' <b>' + f(b.opp.points) + '</b><div class="pmeta">' + b.opp.left + ' still to play</div></div>';
+    } else if (b.guillotine) {
+      const g = b.guillotine;
+      cls = g.rank === g.of ? 'trail' : '';
+      right = '<div class="bopp">Rank <b>' + g.rank + '</b> of ' + g.of + '<div class="pmeta">lowest gets chopped</div></div>';
+    }
+    html += '<div class="board"><div class="bleague">' + esc(b.short) + '</div>' +
+      '<div class="bme"><b class="' + cls + '">' + f(b.me.points) + '</b><div class="pmeta">' + b.me.left + ' still to play</div></div>' + right + '</div>';
+  }
+  html += '</div>';
+  if (!gd.scoreboards.length) html += '<div class="card">No active teams this week.</div>';
+
+  html += '<div class="seg"><button data-gdbench="0" class="' + (opts.includeBench ? '' : 'on') + '">Starters</button>' +
+    '<button data-gdbench="1" class="' + (opts.includeBench ? 'on' : '') + '">Starters + bench</button></div>';
+  if (liveNote) html += '<div class="pmeta small center" style="margin:-4px 0 10px">' + esc(liveNote) + '</div>';
+
+  for (const g of gd.groups) {
+    if (!g.rows.length) continue;
+    html += '<div class="card"><h2>' + g.title + ' (' + g.rows.length + ')</h2>';
+    for (const e of g.rows) {
+      const p = e.player;
+      const tags = playerFlags(p, null, e.game && e.game.state === 'post')
+        .map(fl => '<span class="tag ' + fl.level + '">' + esc(fl.tag) + '</span>').join('');
+      const chips = e.leagues.map(l => '<span class="lchip' + (l.starting ? ' start' : '') + '">' + esc(l.short) +
+        (l.starting ? '' : ' · bench') + (e.leagues.length > 1 && l.pts != null && (!e.game || e.game.state !== 'pre') ? ' <b>' + Number(l.pts).toFixed(1) + '</b>' : '') + '</span>').join('');
+      const best = Math.max(...e.leagues.map(l => l.pts || 0));
+      html += '<div class="row gdrow' + (e.startsSomewhere ? '' : ' benchonly') + '">' +
+        '<div class="slot ' + esc(p.pos) + '">' + esc(p.pos) + '</div>' +
+        '<div><div class="pname">' + esc(p.name) + tags + '</div>' +
+          (e.game ? '<div class="gline ' + e.game.state + '">' + esc(p.team) + ' ' + esc(gameText(e.game)) + '</div>' : '<div class="gline">' + esc(p.team || 'no team') + '</div>') +
+          '<div class="lchips">' + chips + '</div></div>' +
+        '<div class="ppts">' + (e.game && e.game.state !== 'pre' ? best.toFixed(1) : '') + '</div>' +
+      '</div>';
+    }
+    html += '</div>';
+  }
+  return html;
+}

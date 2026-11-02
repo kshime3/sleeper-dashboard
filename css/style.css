@@ -193,3 +193,21 @@ details[open] summary { margin-bottom: 4px; }
 .gline.in { color: var(--good); font-weight: 600; }
 .gline.post { opacity: .75; }
 .alert.locked { background: var(--card-2); border-left: 4px solid var(--line); color: var(--muted); }
+
+/* Game Day */
+.boards { display: grid; grid-template-columns: 1fr; gap: 8px; margin-bottom: 12px; }
+.board {
+  display: grid; grid-template-columns: 64px auto 1fr; gap: 10px; align-items: center;
+  background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px;
+}
+.bleague { font-weight: 700; font-size: 13px; color: var(--accent); overflow-wrap: anywhere; }
+.bme b { font-size: 22px; font-variant-numeric: tabular-nums; }
+.bopp { text-align: right; min-width: 0; overflow-wrap: anywhere; font-size: 14px; }
+.bopp b { font-variant-numeric: tabular-nums; }
+.lchips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.lchip { font-size: 11px; padding: 2px 7px; border-radius: 999px; background: var(--card-2); color: var(--muted); border: 1px solid var(--line); }
+.lchip.start { color: var(--text); border-color: var(--accent); }
+.gdrow.benchonly { opacity: .7; }
+.tabs { grid-template-columns: repeat(5, 1fr); }
+.tabs button { font-size: 11px; }
+body.no-picker #league-picker { display: none; }
