@@ -20,4 +20,7 @@
 - Built **FantasyPros dynasty values**: daily GitHub Action finds this month's article (falls back to last month's; November 2026 not up yet, so October), saves 299 player values (all matched) plus 2027/2028 rookie pick values. MFFL Dynasty trades now use them (superflex for QBs, "All other" value marked est. for unlisted players), with credit and link; switch in "How values work" turns it off. Other leagues unchanged.
 - Fixed: two-way players (Travis Hunter, listed DB) were missing from the player list (saved list renamed sd_players_v2; old copy removed).
 
-**Next:** owner tests, then Standings & Weekly Recap. Possible later: dynasty draft picks in trades (values already saved).
+- Owner ran the Action by hand: green check.
+- Added **draft picks** to dynasty trades (FantasyPros pick values, superflex column): each team's picks for the next 3 seasons, with Sleeper's traded picks applied. Next year's picks use a slot projected from current standings (worst record = 1.01); later years use the round average; 2029 reuses 2028 values (est.). "Picks" filter chip.
+
+**Next:** Standings & Weekly Recap.

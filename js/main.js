@@ -60,6 +60,8 @@ async function showLeague() {
         const [seasonStats, ...weekly] = await Promise.all([loadStats(app.me.season, 0)].concat(weeks.map(w => loadStats(app.me.season, w).catch(() => ({})))));
         d.tradeStats = { seasonStats, weekStats: weeks.map((w, i) => ({ week: w, stats: weekly[i] })) };
         app.fp = await loadDynastyValues();
+        d.tradedPicks = leagueFormat(league) === 'dynasty'
+          ? await getJSON(SLEEPER + '/league/' + league.league_id + '/traded_picks').catch(() => []) : [];
       }
       if (!stillHere()) return;
       d.byes = byes;
@@ -118,11 +120,18 @@ function buildTrade(league, d) {
     league, rosters: d.rosters, players: app.players,
     seasonStats: d.tradeStats.seasonStats, weekStats: d.tradeStats.weekStats, byes: d.byes, fp: app.fp,
   }, settings);
+  // Dynasty + FantasyPros: add each team's draft picks to its list.
+  const fpOn = usesFP(league, settings, app.fp);
+  const picks = fpOn ? draftPickValues({ league, rosters: d.rosters, users: d.users, tradedPicks: d.tradedPicks, fp: app.fp }) : {};
+  Object.assign(values, picks);
+  const picksOf = rosterId => Object.keys(picks).filter(id => picks[id].owner === rosterId)
+    .sort((a, b) => picks[b].value - picks[a].value);
   const cmp = compareTrade(values, d.trade.give, d.trade.get);
   cmp.fp = usesFP(league, settings, app.fp) ? app.fp : null;
   return {
     hasTeam, settings, values, state: d.trade, pos: app.tradePos, positions: leaguePositions(league), opponents: others, oppName: opp.name,
-    myIds: mine.players, oppIds: opp.roster.players,
+    myIds: mine.players.concat(picksOf(mine.roster_id)), oppIds: opp.roster.players.concat(picksOf(opp.roster_id)),
+    hasPicks: Object.keys(picks).length > 0,
     cmp, fpAvailable: !!app.fp && leagueFormat(league) === 'dynasty',
   };
 }

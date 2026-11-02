@@ -176,6 +176,7 @@ function recentText(b) {
 }
 
 function whyText(b) {
+  if (b.isPick) return b.why;
   if (b.fp) {
     const src = 'FantasyPros ' + app.fp.source.month;
     return b.fp.listed
@@ -192,12 +193,18 @@ function whyText(b) {
 }
 
 function fmtValue(b) {
+  if (b.isPick) return b.value + (b.est ? ' est.' : '');
   if (b.fp) return b.value + (b.fp.listed ? '' : ' est.');
   return b.value.toFixed(1);
 }
 
 function tradeCard(b) {
   const p = b.player;
+  if (b.isPick) {
+    return '<div class="tcard"><div class="pname"><span class="slot inline PICK">PICK</span> ' + esc(p.name) + '</div>' +
+      (b.from ? '<div class="pmeta">From ' + esc(b.from) + '</div>' : '') +
+      '<details class="why"><summary>Value <b>' + fmtValue(b) + '</b> — why?</summary><div class="pmeta">' + esc(whyText(b)) + '</div></details></div>';
+  }
   const tags = b.flags.map(f => '<span class="tag ' + f.level + '">' + esc(f.tag) + '</span>').join('');
   return '<div class="tcard">' +
     '<div class="pname"><span class="slot inline ' + esc(p.pos) + '">' + esc(p.pos) + '</span> ' + esc(p.name) + tags + '</div>' +
@@ -237,16 +244,19 @@ function pickList(title, ids, values, picked, side, pos) {
     const tags = b.flags.map(f => '<span class="tag ' + f.level + '">' + esc(f.tag) + '</span>').join('');
     return '<button class="row pick' + (on ? ' on' : '') + '" data-tpick="' + side + '" data-id="' + esc(p.id) + '">' +
       '<div class="slot ' + esc(p.pos) + '">' + esc(p.pos) + '</div>' +
-      '<div><div class="pname">' + (on ? '✓ ' : '') + esc(p.name) + tags + '</div><div class="pmeta">' + esc(p.team || 'no team') + (p.age ? ' · ' + p.age + ' yrs' : '') + ' · ' + b.blended.toFixed(1) + '/g</div></div>' +
+      '<div><div class="pname">' + (on ? '✓ ' : '') + esc(p.name) + tags + '</div><div class="pmeta">' + (b.isPick
+        ? (b.from ? 'From ' + esc(b.from) : 'Own pick') + (b.est ? ' · estimate' : '')
+        : esc(p.team || 'no team') + (p.age ? ' · ' + p.age + ' yrs' : '') + ' · ' + b.blended.toFixed(1) + '/g') + '</div></div>' +
       '<div class="ppts">' + fmtValue(b) + '<div class="pmeta">value</div></div></button>';
   }).join('') + '</div>';
 }
 
 function renderTradeDynamic(t) {
-  const pos = ['ALL'].concat(t.positions).includes(t.pos) ? t.pos : 'ALL';
+  const positions = t.positions.concat(t.hasPicks ? ['PICK'] : []);
+  const pos = ['ALL'].concat(positions).includes(t.pos) ? t.pos : 'ALL';
   const chip = (val, label) => '<button class="fchip' + (pos === val ? ' on' : '') + '" data-tpos="' + val + '">' + label + '</button>';
   return tradeResult(t.cmp) +
-    '<div class="filters">' + chip('ALL', 'All') + t.positions.map(p => chip(p, p)).join('') + '</div>' +
+    '<div class="filters">' + chip('ALL', 'All') + positions.map(p => chip(p, p === 'PICK' ? 'Picks' : p)).join('') + '</div>' +
     pickList('Your players', t.myIds, t.values, t.state.give, 'give', pos) +
     pickList(t.oppName + '\'s players', t.oppIds, t.values, t.state.get, 'get', pos);
 }

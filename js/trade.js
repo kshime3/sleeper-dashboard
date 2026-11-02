@@ -149,3 +149,78 @@ function compareTrade(values, giveIds, getIds) {
   else verdict = { text: Math.abs(pct) < 25 ? 'Leans their way' : 'Clearly wins for them', cls: 'trail' };
   return { give, get, diff, pct, verdict, spotsChange: giveIds.length - getIds.length };
 }
+
+// ---------- Draft picks (dynasty, FantasyPros values) ----------
+// Every team starts with its own picks for the next 3 seasons; Sleeper's traded_picks list says
+// who owns what now. Next year's picks are valued at a slot projected from current standings
+// (worst record = 1.01); later years use the round average, since the order is unknown.
+
+function roundName(n) { return n + (['th', 'st', 'nd', 'rd'][n] || 'th'); }
+
+function projectedSlots(rosters) {
+  const sorted = rosters.slice().sort((a, b) => {
+    const A = recordOf(a), B = recordOf(b);
+    return (A.wins - B.wins) || (A.pts - B.pts);
+  });
+  const slots = {};
+  sorted.forEach((r, i) => { slots[r.roster_id] = i + 1; });
+  return slots;
+}
+
+function pickRowName(round, slot, teams) {
+  if (round === 1) return '1.' + String(slot).padStart(2, '0');
+  const third = slot <= teams / 3 ? 'Early' : slot <= teams * 2 / 3 ? 'Mid' : 'Late';
+  if (round === 2 || round === 3) return third + ' ' + roundName(round);
+  if (round === 4) return (slot <= teams / 2 ? 'Early' : 'Late') + ' 4th';
+  return 'Round 5+';
+}
+
+function average(rows) { return rows.length ? rows.reduce((a, r) => a + r, 0) / rows.length : 0; }
+
+function draftPickValues(ctx) {
+  const { league, rosters, users, tradedPicks, fp } = ctx;
+  const out = {};
+  if (!fp || !fp.picks || !fp.picks.length) return out;
+  const sf = (league.roster_positions || []).includes('SUPER_FLEX');
+  const pickVal = row => row ? (sf ? row.sf : row.v) : 0;
+  const teams = rosters.length;
+  const rounds = league.settings.draft_rounds || 4;
+  const first = Number(league.season) + 1;
+  const slots = projectedSlots(rosters);
+  const tables = {};
+  for (const t of fp.picks) tables[t.year] = t.rows;
+  const lastYear = Math.max(...fp.picks.map(t => Number(t.year)));
+
+  for (let season = first; season < first + 3; season++) {
+    const exact = !!tables[season];
+    const rows = tables[season] || tables[lastYear];
+    for (const r of rosters) {
+      for (let round = 1; round <= rounds; round++) {
+        const trade = (tradedPicks || []).find(t => Number(t.season) === season && t.round === round && t.roster_id === r.roster_id);
+        const owner = trade ? trade.owner_id : r.roster_id;
+        let value, how;
+        if (season === first && exact) {
+          const name = pickRowName(round, slots[r.roster_id], teams);
+          const row = rows.find(x => x.pick === name) || rows[rows.length - 1];
+          value = pickVal(row);
+          how = 'projected ' + name + ' (' + teamName(users, r) + ' has the ' + ordinal(teams + 1 - slots[r.roster_id]) + '-best record of ' + teams + ' right now)';
+        } else {
+          const re = round === 1 ? /^1\./ : new RegExp(roundName(round) + '$');
+          const matches = rows.filter(x => re.test(x.pick));
+          value = Math.round(matches.length ? average(matches.map(pickVal)) : pickVal(rows[rows.length - 1]));
+          how = matches.length ? 'average ' + roundName(round) + '-round value (draft order unknown)' : 'FantasyPros "all others" pick value';
+          if (!exact) how += ', using ' + lastYear + ' values';
+        }
+        const id = 'pick-' + season + '-' + round + '-' + r.roster_id;
+        const own = owner === r.roster_id;
+        out[id] = {
+          isPick: true, owner, value, est: !exact, from: own ? '' : teamName(users, r),
+          player: { id, name: season + ' ' + roundName(round), pos: 'PICK', team: '', positions: ['PICK'], age: 0, injury: '' },
+          why: 'FantasyPros ' + fp.source.month + (sf ? ' superflex' : '') + ' pick value: ' + value + (exact ? '' : ' (est.)') + ' — ' + how,
+          season: { total: 0, ppg: 0, games: 0 }, recent: [], flags: [], blended: 0,
+        };
+      }
+    }
+  }
+  return out;
+}
