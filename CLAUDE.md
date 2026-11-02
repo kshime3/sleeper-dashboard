@@ -43,6 +43,7 @@ js/sleeper.js         logic: Sleeper API calls, saved player list (refreshed at 
 js/stats.js           logic: season/weekly stats and league-scored fantasy points
 js/myteam.js          logic: My Team (lineup, matchup, guillotine status, flags, bench swap ideas)
 js/waivers.js         logic: Waiver Wire (free agents, trending adds, weak spots, upgrade stars, FAAB)
+js/trade.js           logic: Trade Analyzer (value = blended pts/g − best free agent at the position, × age × injury; settings per league)
 js/ui.js              display: draws each tab
 js/main.js            wires it together: loading, league picker, tabs
 docs/PROGRESS.md      dated session log and next step

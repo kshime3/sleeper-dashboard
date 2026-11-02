@@ -10,4 +10,8 @@
 - Owner turned on GitHub Pages: live at https://kshime3.github.io/sleeper-dashboard/ and working on their phone.
 - Built **Waiver Wire**: weak spots (your rank at each position by starters' points per game; bottom half = red), this week's holes, FAAB left; free agents filtered by position or "My needs", sorted by trending adds or points per game; ⭐ on free agents who beat your weakest starter at a weak position, or who are among the best 3 fill-ins for a starter who's out/on bye. Points use each league's own scoring. Tested in all 4 leagues, no errors.
 
-**Next:** owner tests Waiver Wire on the phone, then build Trade Analyzer (propose a scoring method first).
+- Owner: keep bye/injured free agents in the waiver list with tags.
+- Built **Trade Analyzer**: pick a trade partner, tap players on each side; side-by-side cards (season points, last 3 weeks, position, age, injury) with a verdict and value bar. Method: value = (blend of season and last-3-week pts/g − best free agent at that position with 3+ games) × age adjustment × injury cut. Sliders per league (recent weight, age effect: dynasty 100%/keeper 50%/redraft 0%, injury cut), saved on the phone; "why?" shows the math for each player. Tested in all 4 leagues, no errors.
+- Known limits: rookies/players hurt all season show value 0 (no stats yet); no dynasty draft picks.
+
+**Next:** owner tests Trade Analyzer on the phone, then build Standings & Weekly Recap.

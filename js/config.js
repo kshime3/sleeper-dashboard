@@ -13,6 +13,21 @@ const CONFIG = {
     weakIfRankBelow: 0.5,  // a position is "weak" if you rank in the bottom half of your league there
   },
 
+  // Trade Analyzer: starting settings for the scoring method (you can change them on the tab).
+  trade: {
+    recentWeeks: 3,          // "recent" = the last this-many weeks
+    recentWeight: 50,        // % of the blend that comes from recent weeks (rest = whole season)
+    ageEffect: { dynasty: 100, keeper: 50, redraft: 0 },  // % strength of the age adjustment
+    injuryEffect: 100,       // % strength of the injury cut
+    peakAge: { QB: 30, RB: 25, WR: 27, TE: 27, K: 33 },   // no age adjustment for DEF
+    // per year past peak: lose this much (at 100% age effect)
+    agePenaltyPerYear: { QB: 0.04, RB: 0.10, WR: 0.06, TE: 0.06, K: 0.02 },
+    youthBonusPerYear: 0.03, // per year younger than peak...
+    youthBonusMax: 0.15,     // ...up to this much
+    injuryCut: { Questionable: 0.05, Doubtful: 0.15, Out: 0.20, IR: 0.40, PUP: 0.40, Sus: 0.40, NA: 0.40, COV: 0.20, DNR: 0.40 },
+    minGamesForReplacement: 3, // free agents need this many games to count as "replacement"
+  },
+
   // Your notes about each league (matched by league name). Sleeper's own settings
   // don't always say this clearly, so we write it down.
   leagueNotes: {

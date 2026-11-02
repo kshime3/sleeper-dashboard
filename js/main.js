@@ -27,9 +27,8 @@ async function showLeague() {
   const view = $('#view');
   if (!league) { view.innerHTML = renderError('No leagues found for ' + CONFIG.username + '.'); return; }
 
-  if (app.tab === 'trade' || app.tab === 'standings') {
-    const names = { trade: 'Trade Analyzer', standings: 'Standings & Recap' };
-    view.innerHTML = renderComingSoon(names[app.tab]);
+  if (app.tab === 'standings') {
+    view.innerHTML = renderComingSoon('Standings & Recap');
     return;
   }
 
@@ -50,6 +49,20 @@ async function showLeague() {
     });
 
     if (tab === 'team') { view.innerHTML = renderMyTeam(team, league); return; }
+
+    if (tab === 'trade') {
+      if (!d.tradeStats) {
+        view.innerHTML = '<p class="muted center">Loading stats…</p>';
+        const weeks = [];
+        for (let w = week - 1; w >= 1 && weeks.length < CONFIG.trade.recentWeeks; w--) weeks.push(w);
+        const [seasonStats, ...weekly] = await Promise.all([loadStats(app.me.season, 0)].concat(weeks.map(w => loadStats(app.me.season, w).catch(() => ({})))));
+        d.tradeStats = { seasonStats, weekStats: weeks.map((w, i) => ({ week: w, stats: weekly[i] })) };
+      }
+      if (!stillHere()) return;
+      d.byes = byes;
+      view.innerHTML = renderTrade(buildTrade(league, d));
+      return;
+    }
 
     // Waiver Wire: needs season stats, last week's stats and trending adds (a few MB, once per visit).
     if (!d.waivers) {
@@ -81,6 +94,73 @@ $('#view').addEventListener('click', e => {
   Store.set('sd_waiver_opts', app.waiverOpts);
   const d = app.leagueData[app.leagueId];
   if (d && d.waivers) $('#view').innerHTML = renderWaivers(d.waivers, app.waiverOpts);
+});
+
+// ---------- Trade Analyzer state ----------
+function tradeSettingsFor(league) {
+  return Object.assign(defaultTradeSettings(league), Store.get('sd_trade_' + league.league_id) || {});
+}
+
+function buildTrade(league, d) {
+  const userId = app.me.user.user_id;
+  const mine = d.rosters.find(r => isMine(r, userId));
+  const hasTeam = !!(mine && (mine.players || []).length);
+  if (!hasTeam) return { hasTeam };
+  const others = d.rosters.filter(r => r !== mine && (r.players || []).length)
+    .map(r => ({ roster_id: r.roster_id, name: teamName(d.users, r), roster: r }));
+  if (!d.trade || !others.some(o => o.roster_id === d.trade.opp)) d.trade = { opp: others[0].roster_id, give: [], get: [] };
+  const opp = others.find(o => o.roster_id === d.trade.opp);
+  const settings = tradeSettingsFor(league);
+  const values = tradeValues({
+    league, rosters: d.rosters, players: app.players,
+    seasonStats: d.tradeStats.seasonStats, weekStats: d.tradeStats.weekStats, byes: d.byes,
+  }, settings);
+  return {
+    hasTeam, settings, values, state: d.trade, opponents: others, oppName: opp.name,
+    myIds: mine.players, oppIds: opp.roster.players,
+    cmp: compareTrade(values, d.trade.give, d.trade.get),
+  };
+}
+
+function currentLeague() { return app.me.leagues.find(l => l.league_id === app.leagueId); }
+
+// Taps on players and "clear"/"reset" buttons
+$('#view').addEventListener('click', e => {
+  const d = app.leagueData[app.leagueId];
+  if (app.tab !== 'trade' || !d || !d.trade) return;
+  const pick = e.target.closest('[data-tpick]'), reset = e.target.closest('[data-treset]');
+  if (pick) {
+    const list = pick.dataset.tpick === 'give' ? d.trade.give : d.trade.get;
+    const i = list.indexOf(pick.dataset.id);
+    if (i >= 0) list.splice(i, 1); else list.push(pick.dataset.id);
+    $('#trade-dyn').innerHTML = renderTradeDynamic(buildTrade(currentLeague(), d));
+    return;
+  }
+  if (reset) {
+    if (reset.dataset.treset === 'picks') { d.trade.give = []; d.trade.get = []; }
+    else Store.set('sd_trade_' + app.leagueId, null);
+    showLeague();
+  }
+});
+
+// Changing the trade partner
+$('#view').addEventListener('change', e => {
+  if (e.target.id !== 'trade-opp') return;
+  const d = app.leagueData[app.leagueId];
+  d.trade = { opp: Number(e.target.value), give: d.trade.give, get: [] };
+  showLeague();
+});
+
+// Sliders: update live while dragging, without redrawing the slider itself.
+$('#view').addEventListener('input', e => {
+  const key = e.target.dataset && e.target.dataset.tset;
+  if (!key) return;
+  const league = currentLeague(), d = app.leagueData[app.leagueId];
+  const settings = tradeSettingsFor(league);
+  settings[key] = Number(e.target.value);
+  Store.set('sd_trade_' + league.league_id, settings);
+  $('[data-tlabel="' + key + '"]').textContent = settings[key] + '%';
+  $('#trade-dyn').innerHTML = renderTradeDynamic(buildTrade(league, d));
 });
 
 function fillLeaguePicker() {

@@ -169,3 +169,86 @@ function renderWaivers(w, opts) {
   html += '</div>';
   return html;
 }
+
+// ---------- Trade Analyzer ----------
+function recentText(b) {
+  return b.recent.map(r => r.pts == null ? '–' : r.pts.toFixed(1)).join(' · ');
+}
+
+function whyText(b) {
+  return 'Blend ' + b.blended.toFixed(1) + '/g (season ' + b.season.ppg.toFixed(1) +
+    (b.recentPpg != null ? ', recent ' + b.recentPpg.toFixed(1) : ', no recent games') + ')' +
+    ' − best free agent ' + b.player.pos + ' (' + b.replWho + ') ' + b.repl.toFixed(1) +
+    ' = ' + (b.over >= 0 ? '+' : '') + b.over.toFixed(1) + (b.over < 0 ? ' → counts as 0' : '') +
+    (b.age.text ? ' · age ' + b.player.age + ': ' + b.age.text : '') +
+    (b.inj.text ? ' · ' + b.player.injury + ': ' + b.inj.text : '') +
+    ' → value ' + b.value.toFixed(1);
+}
+
+function tradeCard(b) {
+  const p = b.player;
+  const tags = b.flags.map(f => '<span class="tag ' + f.level + '">' + esc(f.tag) + '</span>').join('');
+  return '<div class="tcard">' +
+    '<div class="pname"><span class="slot inline ' + esc(p.pos) + '">' + esc(p.pos) + '</span> ' + esc(p.name) + tags + '</div>' +
+    '<div class="pmeta">' + esc(p.team || 'no team') + (p.age ? ' · age ' + p.age : '') + (p.injury ? ' · ' + esc(p.injury) : '') + '</div>' +
+    '<div class="tstat"><span>Season</span><b>' + b.season.total.toFixed(1) + '</b> <span class="pmeta">(' + b.season.ppg.toFixed(1) + '/g, ' + b.season.games + ' g)</span></div>' +
+    '<div class="tstat"><span>Wk ' + b.recent.map(r => r.week).join(', ') + '</span><b>' + recentText(b) + '</b></div>' +
+    '<details class="why"><summary>Value <b>' + b.value.toFixed(1) + '</b> — why?</summary><div class="pmeta">' + esc(whyText(b)) + '</div></details>' +
+  '</div>';
+}
+
+function tradeResult(cmp) {
+  const total = (cmp.give.value + cmp.get.value) || 1;
+  const getShare = Math.round(cmp.get.value / total * 100);
+  let html = '<div class="card"><h2>Trade check</h2>';
+  html += '<div class="verdict ' + cmp.verdict.cls + '">' + esc(cmp.verdict.text) + '</div>';
+  if (cmp.give.rows.length && cmp.get.rows.length) {
+    html += '<div class="tbar"><div style="width:' + getShare + '%"></div></div>' +
+      '<div class="tbar-labels"><span>You get <b>' + cmp.get.value.toFixed(1) + '</b></span><span>You give <b>' + cmp.give.value.toFixed(1) + '</b></span></div>';
+    html += '<div class="pmeta small">Season points: get ' + cmp.get.seasonPts.toFixed(1) + ' vs give ' + cmp.give.seasonPts.toFixed(1) + '.';
+    if (cmp.spotsChange < 0) html += ' You\'d need to drop ' + (-cmp.spotsChange) + ' player' + (cmp.spotsChange < -1 ? 's' : '') + ' to make room.';
+    if (cmp.spotsChange > 0) html += ' You\'d open ' + cmp.spotsChange + ' roster spot' + (cmp.spotsChange > 1 ? 's' : '') + ' for a free-agent pickup.';
+    html += '</div>';
+  }
+  html += '<div class="tcols"><div><h3>You give</h3>' + (cmp.give.rows.map(tradeCard).join('') || '<div class="pmeta">Tap your players below.</div>') + '</div>' +
+    '<div><h3>You get</h3>' + (cmp.get.rows.map(tradeCard).join('') || '<div class="pmeta">Tap their players below.</div>') + '</div></div>';
+  return html + '</div>';
+}
+
+function pickList(title, ids, values, picked, side) {
+  const rows = ids.map(id => values[id]).filter(Boolean).sort((a, b) => b.value - a.value);
+  return '<div class="card"><h2>' + esc(title) + '</h2>' + rows.map(b => {
+    const p = b.player, on = picked.includes(p.id);
+    const tags = b.flags.map(f => '<span class="tag ' + f.level + '">' + esc(f.tag) + '</span>').join('');
+    return '<button class="row pick' + (on ? ' on' : '') + '" data-tpick="' + side + '" data-id="' + esc(p.id) + '">' +
+      '<div class="slot ' + esc(p.pos) + '">' + esc(p.pos) + '</div>' +
+      '<div><div class="pname">' + (on ? '✓ ' : '') + esc(p.name) + tags + '</div><div class="pmeta">' + esc(p.team || 'no team') + (p.age ? ' · ' + p.age + ' yrs' : '') + ' · ' + b.blended.toFixed(1) + '/g</div></div>' +
+      '<div class="ppts">' + b.value.toFixed(1) + '<div class="pmeta">value</div></div></button>';
+  }).join('') + '</div>';
+}
+
+function renderTradeDynamic(t) {
+  return tradeResult(t.cmp) +
+    pickList('Your players', t.myIds, t.values, t.state.give, 'give') +
+    pickList(t.oppName + '\'s players', t.oppIds, t.values, t.state.get, 'get');
+}
+
+function renderTrade(t) {
+  if (!t.hasTeam) return '<div class="card">You don\'t have players in this league, so there\'s nothing to trade.</div>';
+  const s = t.settings;
+  const slider = (key, label, val, help) =>
+    '<label class="slider"><div><span>' + label + '</span><b data-tlabel="' + key + '">' + val + '%</b></div>' +
+    '<input type="range" min="0" max="100" step="10" value="' + val + '" data-tset="' + key + '">' +
+    '<div class="pmeta small">' + help + '</div></label>';
+  return '<div class="card"><h2>Trade with</h2><select id="trade-opp">' +
+      t.opponents.map(o => '<option value="' + o.roster_id + '"' + (o.roster_id === t.state.opp ? ' selected' : '') + '>' + esc(o.name) + '</option>').join('') +
+    '</select>' + (t.state.give.length || t.state.get.length ? '<button class="link" data-treset="picks">Clear picks</button>' : '') + '</div>' +
+    '<div id="trade-dyn">' + renderTradeDynamic(t) + '</div>' +
+    '<div class="card"><details class="tsettings"><summary>How values work · adjust</summary>' +
+      '<p class="small">A player\'s <b>value</b> = how many more points per game he scores than the <b>best free agent at his position</b> in this league, adjusted for age and injury. Anyone no better than a free agent counts as 0. Points use this league\'s scoring.</p>' +
+      slider('recentWeight', 'Recent weeks vs. season', s.recentWeight, 'How much of the points-per-game blend comes from the last ' + CONFIG.trade.recentWeeks + ' weeks (the rest is the whole season). 0% = season only, 100% = recent only.') +
+      slider('ageEffect', 'Age matters', s.ageEffect, 'Young players get up to +15%; each year past peak age (QB 30, RB 25, WR/TE 27) costs RB 10%, WR/TE 6%, QB 4%. Starts at 100% in dynasty, 50% in keeper, 0% in redraft.') +
+      slider('injuryEffect', 'Injury cut', s.injuryEffect, 'At 100%: Questionable −5%, Doubtful −15%, Out −20%, IR/PUP/Suspended −40%.') +
+      '<button class="btn small-btn" data-treset="settings">Reset to defaults</button>' +
+    '</details></div>';
+}

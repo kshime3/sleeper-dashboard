@@ -137,3 +137,26 @@ details[open] summary { margin-bottom: 4px; }
 .wrow.fits { background: linear-gradient(90deg, rgba(25, 194, 181, .13), transparent 75%); }
 .fit { font-size: 12px; color: var(--accent); margin-top: 2px; }
 .wrow .ppts { font-size: 13px; }
+
+/* Trade Analyzer */
+#trade-opp { margin-top: 2px; }
+.link { background: none; border: 0; color: var(--accent); padding: 8px 0 0; cursor: pointer; font-size: 14px; }
+.verdict { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+.tbar { height: 12px; border-radius: 6px; background: var(--bad); overflow: hidden; }
+.tbar div { height: 100%; background: var(--good); }
+.tbar-labels { display: flex; justify-content: space-between; font-size: 13px; margin: 4px 0 6px; }
+.tcols { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+.tcols h3 { font-size: 13px; margin: 0 0 6px; color: var(--muted); }
+.tcard { background: var(--card-2); border-radius: 10px; padding: 8px; margin-bottom: 8px; font-size: 13px; min-width: 0; }
+.tcard .pname { font-size: 14px; }
+.slot.inline { display: inline-block; padding: 1px 4px; font-size: 10px; }
+.tstat { display: flex; flex-wrap: wrap; gap: 4px; align-items: baseline; margin-top: 4px; }
+.tstat > span:first-child { color: var(--muted); }
+.why summary { text-transform: none; letter-spacing: 0; font-size: 13px; color: var(--accent); margin-top: 4px; }
+.why summary b { color: var(--text); }
+.row.pick { width: 100%; background: none; border: 0; border-top: 1px solid var(--line); text-align: left; cursor: pointer; padding: 8px 4px; }
+.row.pick.on { background: rgba(25, 194, 181, .15); border-radius: 8px; }
+.slider { display: block; margin: 12px 0; }
+.slider > div:first-child { display: flex; justify-content: space-between; }
+.slider input { width: 100%; accent-color: var(--accent); }
+.small-btn { padding: 8px 12px; font-size: 14px; }
