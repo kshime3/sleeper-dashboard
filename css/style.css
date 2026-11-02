@@ -1,0 +1,119 @@
+/* Colors: dark by default (like the Sleeper app); light if the phone is set to light mode. */
+:root {
+  --bg: #101722; --card: #1a2433; --card-2: #223047; --line: #2c3a52;
+  --text: #e8eef7; --muted: #8fa0b8; --accent: #19c2b5;
+  --good: #3ccf7a; --warn: #f2b33d; --bad: #f2555a;
+  --warn-bg: rgba(242, 179, 61, .14); --bad-bg: rgba(242, 85, 90, .14);
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f2f5f9; --card: #ffffff; --card-2: #eef2f7; --line: #d8e0ea;
+    --text: #18212e; --muted: #5d6b80; --accent: #0e9488;
+    --good: #1b9a53; --warn: #b77a06; --bad: #d23a40;
+    --warn-bg: rgba(242, 179, 61, .18); --bad-bg: rgba(242, 85, 90, .12);
+    color-scheme: light;
+  }
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg); color: var(--text);
+  font: 15px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  padding-bottom: calc(68px + env(safe-area-inset-bottom));
+  -webkit-tap-highlight-color: transparent;
+}
+button, select { font: inherit; color: inherit; }
+
+/* Top bar */
+.top {
+  position: sticky; top: 0; z-index: 5;
+  background: var(--bg); border-bottom: 1px solid var(--line);
+  padding: calc(10px + env(safe-area-inset-top)) 16px 10px;
+}
+.top-row { display: flex; align-items: center; justify-content: space-between; }
+h1 { font-size: 18px; margin: 0 0 8px; }
+.icon-btn {
+  background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+  width: 40px; height: 36px; font-size: 20px; cursor: pointer;
+}
+.icon-btn.spin { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+select {
+  width: 100%; padding: 10px 12px; border-radius: 10px;
+  background: var(--card); border: 1px solid var(--line);
+}
+
+main { padding: 12px 16px; max-width: 640px; margin: 0 auto; }
+.muted { color: var(--muted); }
+.center { text-align: center; }
+.small { font-size: 13px; }
+
+.card {
+  background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+  padding: 12px 14px; margin-bottom: 12px;
+}
+.card h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 8px; }
+
+/* Matchup scoreboard */
+.score { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; }
+.score .side { min-width: 0; }
+.score .side.right { text-align: right; }
+.score .name { font-weight: 600; overflow-wrap: anywhere; }
+.score .pts { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.score .vs { color: var(--muted); font-size: 13px; }
+.lead { color: var(--good); }
+.trail { color: var(--bad); }
+
+/* Alerts */
+.alert { border-radius: 10px; padding: 8px 10px; margin-top: 6px; }
+.alert.bad { background: var(--bad-bg); border-left: 4px solid var(--bad); }
+.alert.warn { background: var(--warn-bg); border-left: 4px solid var(--warn); }
+.alert .swap { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.all-good { color: var(--good); }
+
+/* Lineup rows */
+.row { display: grid; grid-template-columns: 46px 1fr auto; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); }
+.row:first-of-type { border-top: 0; }
+.row.flag-bad { background: linear-gradient(90deg, var(--bad-bg), transparent 70%); }
+.row.flag-warn { background: linear-gradient(90deg, var(--warn-bg), transparent 70%); }
+.slot {
+  font-size: 11px; font-weight: 700; text-align: center; border-radius: 8px;
+  padding: 4px 0; background: var(--card-2); color: var(--muted);
+}
+.slot.QB { color: #ff6f91; } .slot.RB { color: #2fd1a0; } .slot.WR { color: #5aa9ff; }
+.slot.TE { color: #ffab4a; } .slot.K, .slot.DEF { color: #b48cff; }
+.pname { font-weight: 600; overflow-wrap: anywhere; }
+.pmeta { font-size: 12px; color: var(--muted); }
+.ppts { font-variant-numeric: tabular-nums; font-weight: 600; text-align: right; min-width: 44px; }
+.tag { display: inline-block; font-size: 10px; font-weight: 700; border-radius: 5px; padding: 1px 5px; margin-left: 4px; vertical-align: 1px; }
+.tag.bad { background: var(--bad); color: #fff; }
+.tag.warn { background: var(--warn); color: #1a1200; }
+
+details summary { cursor: pointer; color: var(--muted); font-size: 13px; text-transform: uppercase; letter-spacing: .06em; padding: 2px 0; }
+details[open] summary { margin-bottom: 4px; }
+
+.error { border-color: var(--bad); }
+.btn {
+  background: var(--accent); color: #fff; border: 0; border-radius: 10px;
+  padding: 10px 14px; font-weight: 600; cursor: pointer;
+}
+
+/* Status line above the tabs */
+.status { text-align: center; font-size: 12px; color: var(--muted); padding: 4px 16px 12px; }
+.status a { color: var(--accent); }
+
+/* Bottom tab bar (easy to reach with your thumb) */
+.tabs {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  background: var(--card); border-top: 1px solid var(--line);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.tabs button {
+  background: none; border: 0; padding: 8px 0 10px; font-size: 12px; color: var(--muted);
+  display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer;
+}
+.tabs button span { font-size: 20px; line-height: 1; }
+.tabs button.active { color: var(--accent); font-weight: 600; }
