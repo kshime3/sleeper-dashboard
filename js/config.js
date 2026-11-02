@@ -4,8 +4,8 @@ const CONFIG = {
   playerCacheHours: 24,         // re-download Sleeper's big player list at most this often (fallback only)
   playerSiteCacheHours: 2,      // re-check the small player list on our site (rebuilt hourly) this often
   scheduleCacheHours: 24,       // same for the NFL schedule (used for bye weeks)
-  refreshAfterAwayMinutes: 5,
-  liveRefreshSeconds: 60,       // during live games, My Team and Game Day update scores this often   // reopening the app after this long in the background refreshes it
+  refreshAfterAwayMinutes: 5,   // reopening the app after this long in the background refreshes it
+  liveRefreshSeconds: 60,       // during live games, My Team and Game Day update scores this often
 
   waivers: {
     trendingHours: 24,     // "trending" = most added across all Sleeper leagues in this many hours

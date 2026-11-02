@@ -226,7 +226,10 @@ function tradeResult(cmp) {
   const total = (cmp.give.value + cmp.get.value) || 1;
   const getShare = Math.round(cmp.get.value / total * 100);
   let html = '<div class="card"><h2>Trade check</h2>';
-  html += '<div class="verdict ' + cmp.verdict.cls + '">' + esc(cmp.verdict.text) + '</div>';
+  const verdictText = cmp.anyTeam && !cmp.get.rows.length
+    ? (cmp.give.rows.length ? 'Now pick a trade idea below 👇' : 'Tap your players below to see trade ideas')
+    : cmp.verdict.text;
+  html += '<div class="verdict ' + cmp.verdict.cls + '">' + esc(verdictText) + '</div>';
   if (cmp.give.rows.length && cmp.get.rows.length) {
     html += '<div class="tbar"><div style="width:' + getShare + '%"></div></div>' +
       '<div class="tbar-labels"><span>You get <b>' + cmp.get.value.toFixed(1) + '</b></span><span>You give <b>' + cmp.give.value.toFixed(1) + '</b></span></div>';
@@ -237,7 +240,7 @@ function tradeResult(cmp) {
   }
   if (cmp.fp) html += '<div class="pmeta small credit">Values: <a href="' + esc(cmp.fp.source.url) + '" target="_blank" rel="noopener">FantasyPros Dynasty Trade Value Chart (' + esc(cmp.fp.source.month) + ')</a>. Values © FantasyPros.</div>';
   html += '<div class="tcols"><div><h3>You give</h3>' + (cmp.give.rows.map(tradeCard).join('') || '<div class="pmeta">Tap your players below.</div>') + '</div>' +
-    '<div><h3>You get</h3>' + (cmp.get.rows.map(tradeCard).join('') || '<div class="pmeta">Tap their players below.</div>') + '</div></div>';
+    '<div><h3>You get</h3>' + (cmp.get.rows.map(tradeCard).join('') || '<div class="pmeta">' + (cmp.anyTeam ? 'Tap "Try it" on an idea, or pick a team above.' : 'Tap their players below.') + '</div>') + '</div></div>';
   return html + '</div>';
 }
 
@@ -311,7 +314,7 @@ function renderTradeDynamic(t) {
   return tradeResult(t.cmp) + ideasCard(t.ideas, t) +
     '<div class="filters">' + chip('ALL', 'All') + positions.map(p => chip(p, p === 'PICK' ? 'Picks' : p)).join('') + '</div>' +
     pickList('Your players', t.myIds, t.values, t.state.give, 'give', pos) +
-    pickList(t.oppName + '\'s players', t.oppIds, t.values, t.state.get, 'get', pos);
+    (t.oppName ? pickList(t.oppName + '\'s players', t.oppIds, t.values, t.state.get, 'get', pos) : '');
 }
 
 function renderTrade(t) {
@@ -322,6 +325,7 @@ function renderTrade(t) {
     '<input type="range" min="0" max="100" step="10" value="' + val + '" data-tset="' + key + '">' +
     '<div class="pmeta small">' + help + '</div></label>';
   return '<div class="card"><h2>Trade with</h2><select id="trade-opp">' +
+      '<option value="any"' + (t.state.opp === 'any' ? ' selected' : '') + '>Any team (search the whole league)</option>' +
       t.opponents.map(o => '<option value="' + o.roster_id + '"' + (o.roster_id === t.state.opp ? ' selected' : '') + '>' + esc(o.name) + '</option>').join('') +
     '</select>' + (t.state.give.length || t.state.get.length ? '<button class="link" data-treset="picks">Clear picks</button>' : '') + '</div>' +
     '<div id="trade-dyn">' + renderTradeDynamic(t) + '</div>' +

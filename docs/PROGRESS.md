@@ -51,4 +51,6 @@
 
 - Owner: keep "share with friends" parked, but flag future decisions that affect it (added as a working rule in CLAUDE.md).
 
-**Next:** owner tests idea filters; ESPN leagues when the owner follows up.
+- Trade tab now starts on **"Any team (search the whole league)"** (owner's idea): pick your players → ideas from every team; their roster list is hidden until you Try an idea or choose a team; choosing "Any team" again clears the other side. Checked: no effect on the share-with-friends plan.
+
+**Next:** owner tests; ESPN leagues when the owner follows up.

@@ -151,8 +151,10 @@ function buildTrade(league, d) {
   if (!hasTeam) return { hasTeam };
   const others = d.rosters.filter(r => r !== mine && (r.players || []).length)
     .map(r => ({ roster_id: r.roster_id, name: teamName(d.users, r), roster: r }));
-  if (!d.trade || !others.some(o => o.roster_id === d.trade.opp)) d.trade = { opp: others[0].roster_id, give: [], get: [] };
-  const opp = others.find(o => o.roster_id === d.trade.opp);
+  // Start on "Any team": the trade ideas search the whole league. Pick a team to browse its roster.
+  if (!d.trade) d.trade = { opp: 'any', give: [], get: [] };
+  if (d.trade.opp !== 'any' && !others.some(o => o.roster_id === d.trade.opp)) d.trade = { opp: 'any', give: d.trade.give, get: [] };
+  const opp = others.find(o => o.roster_id === d.trade.opp) || null;
   const settings = tradeSettingsFor(league);
   const values = tradeValues({
     league, rosters: d.rosters, players: app.players,
@@ -166,6 +168,7 @@ function buildTrade(league, d) {
     .sort((a, b) => picks[b].value - picks[a].value);
   const cmp = compareTrade(values, d.trade.give, d.trade.get);
   cmp.fp = usesFP(league, settings, app.fp) ? app.fp : null;
+  cmp.anyTeam = !opp;
   // Trade ideas for the players you picked to give (all teams, not just the one selected above).
   const ideas = d.trade.give.length ? tradeIdeas({
     values, mine, giveIds: d.trade.give, filter: ideaFilterFor(league, Object.keys(picks).length > 0),
@@ -174,8 +177,8 @@ function buildTrade(league, d) {
   }) : null;
   app.tradeIdeasNow = ideas;
   return {
-    hasTeam, settings, values, state: d.trade, pos: app.tradePos, positions: leaguePositions(league), opponents: others, oppName: opp.name,
-    myIds: mine.players.concat(picksOf(mine.roster_id)), oppIds: opp.roster.players.concat(picksOf(opp.roster_id)),
+    hasTeam, settings, values, state: d.trade, pos: app.tradePos, positions: leaguePositions(league), opponents: others, oppName: opp ? opp.name : '',
+    myIds: mine.players.concat(picksOf(mine.roster_id)), oppIds: opp ? opp.roster.players.concat(picksOf(opp.roster_id)) : [],
     hasPicks: Object.keys(picks).length > 0,
     cmp, ideas, ideaFilter: ideaFilterFor(league, Object.keys(picks).length > 0), fpAvailable: !!app.fp && leagueFormat(league) === 'dynasty',
   };
@@ -263,7 +266,7 @@ $('#view').addEventListener('change', e => {
 $('#view').addEventListener('change', e => {
   if (e.target.id !== 'trade-opp') return;
   const d = app.leagueData[app.leagueId];
-  d.trade = { opp: Number(e.target.value), give: d.trade.give, get: [] };
+  d.trade = { opp: e.target.value === 'any' ? 'any' : Number(e.target.value), give: d.trade.give, get: [] };
   showLeague();
 });
 
