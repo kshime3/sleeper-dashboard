@@ -4,6 +4,7 @@ const app = {
   leagueData: {},      // league_id -> { rosters, users, matchups }
   leagueId: null,
   tab: 'team',
+  tradePos: 'ALL',
   waiverOpts: Object.assign({ filter: 'ALL', sort: 'trend' }, Store.get('sd_waiver_opts') || {}),
 };
 
@@ -116,7 +117,7 @@ function buildTrade(league, d) {
     seasonStats: d.tradeStats.seasonStats, weekStats: d.tradeStats.weekStats, byes: d.byes,
   }, settings);
   return {
-    hasTeam, settings, values, state: d.trade, opponents: others, oppName: opp.name,
+    hasTeam, settings, values, state: d.trade, pos: app.tradePos, positions: leaguePositions(league), opponents: others, oppName: opp.name,
     myIds: mine.players, oppIds: opp.roster.players,
     cmp: compareTrade(values, d.trade.give, d.trade.get),
   };
@@ -128,7 +129,12 @@ function currentLeague() { return app.me.leagues.find(l => l.league_id === app.l
 $('#view').addEventListener('click', e => {
   const d = app.leagueData[app.leagueId];
   if (app.tab !== 'trade' || !d || !d.trade) return;
-  const pick = e.target.closest('[data-tpick]'), reset = e.target.closest('[data-treset]');
+  const pick = e.target.closest('[data-tpick]'), reset = e.target.closest('[data-treset]'), posChip = e.target.closest('[data-tpos]');
+  if (posChip) {
+    app.tradePos = posChip.dataset.tpos;
+    $('#trade-dyn').innerHTML = renderTradeDynamic(buildTrade(currentLeague(), d));
+    return;
+  }
   if (pick) {
     const list = pick.dataset.tpick === 'give' ? d.trade.give : d.trade.get;
     const i = list.indexOf(pick.dataset.id);

@@ -14,4 +14,7 @@
 - Built **Trade Analyzer**: pick a trade partner, tap players on each side; side-by-side cards (season points, last 3 weeks, position, age, injury) with a verdict and value bar. Method: value = (blend of season and last-3-week pts/g − best free agent at that position with 3+ games) × age adjustment × injury cut. Sliders per league (recent weight, age effect: dynasty 100%/keeper 50%/redraft 0%, injury cut), saved on the phone; "why?" shows the math for each player. Tested in all 4 leagues, no errors.
 - Known limits: rookies/players hurt all season show value 0 (no stats yet); no dynasty draft picks.
 
-**Next:** owner tests Trade Analyzer on the phone, then build Standings & Weekly Recap.
+- Added position filter chips to the trade player lists (owner asked). Owner confirmed redraft values look right.
+- Owner wants dynasty values from the FantasyPros monthly "Dynasty Trade Value Chart" article (use the current month's if published, else last month's). Waiting on www.fantasypros.com being allowed in the cloud environment to see the page format.
+
+**Next:** FantasyPros dynasty values, then Standings & Weekly Recap.

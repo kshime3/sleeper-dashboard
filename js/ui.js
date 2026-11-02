@@ -215,8 +215,11 @@ function tradeResult(cmp) {
   return html + '</div>';
 }
 
-function pickList(title, ids, values, picked, side) {
-  const rows = ids.map(id => values[id]).filter(Boolean).sort((a, b) => b.value - a.value);
+function pickList(title, ids, values, picked, side, pos) {
+  const rows = ids.map(id => values[id])
+    .filter(b => b && (pos === 'ALL' || b.player.positions.includes(pos)))
+    .sort((a, b) => b.value - a.value);
+  if (!rows.length) return '<div class="card"><h2>' + esc(title) + '</h2><div class="pmeta">No ' + esc(pos) + 's.</div></div>';
   return '<div class="card"><h2>' + esc(title) + '</h2>' + rows.map(b => {
     const p = b.player, on = picked.includes(p.id);
     const tags = b.flags.map(f => '<span class="tag ' + f.level + '">' + esc(f.tag) + '</span>').join('');
@@ -228,9 +231,12 @@ function pickList(title, ids, values, picked, side) {
 }
 
 function renderTradeDynamic(t) {
+  const pos = ['ALL'].concat(t.positions).includes(t.pos) ? t.pos : 'ALL';
+  const chip = (val, label) => '<button class="fchip' + (pos === val ? ' on' : '') + '" data-tpos="' + val + '">' + label + '</button>';
   return tradeResult(t.cmp) +
-    pickList('Your players', t.myIds, t.values, t.state.give, 'give') +
-    pickList(t.oppName + '\'s players', t.oppIds, t.values, t.state.get, 'get');
+    '<div class="filters">' + chip('ALL', 'All') + t.positions.map(p => chip(p, p)).join('') + '</div>' +
+    pickList('Your players', t.myIds, t.values, t.state.give, 'give', pos) +
+    pickList(t.oppName + '\'s players', t.oppIds, t.values, t.state.get, 'get', pos);
 }
 
 function renderTrade(t) {
