@@ -5,6 +5,8 @@ const app = {
   leagueId: null,
   tab: ['team', 'waivers', 'trade', 'standings'].includes(Store.get('sd_tab')) ? Store.get('sd_tab') : 'team', // reopen on your last tab
   tradePos: 'ALL',
+  uiKeep: {},          // league_id -> on-screen choices kept across refreshes
+  loadedAt: 0,
   fp: null,            // FantasyPros dynasty values (data/dynasty-values.json)
   waiverOpts: Object.assign({ filter: 'ALL', sort: 'trend' }, Store.get('sd_waiver_opts') || {}),
 };
@@ -16,9 +18,16 @@ function currentWeek() {
   return s.season_type === 'regular' || s.season_type === 'post' ? (s.week || s.display_week || 0) : 0;
 }
 
-function setStatus() {
+function timeOf(ms) {
+  return new Date(ms).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+}
+
+function setStatus(phase) {
   const parts = [];
-  if (app.playersSavedAt) parts.push('Player list saved ' + ago(app.playersSavedAt));
+  if (phase === 'saved') parts.push('Showing saved data' + (NET.oldest ? ' from ' + timeOf(NET.oldest) : '') + ' · updating…');
+  else if (NET.offline) parts.push('📴 Offline — showing data saved' + (NET.oldest ? ' at ' + timeOf(NET.oldest) : ''));
+  else parts.push('Updated ' + timeOf(app.loadedAt || Date.now()));
+  if (app.playersSavedAt) parts.push('players ' + ago(app.playersSavedAt));
   parts.push('<a href="#" id="refresh-players">refresh player list</a>');
   $('#status').innerHTML = parts.join(' · ');
   $('#refresh-players').onclick = e => { e.preventDefault(); reloadAll(true); };
@@ -34,8 +43,9 @@ async function showLeague() {
   const stillHere = () => app.leagueId === league.league_id && app.tab === tab; // you may switch while it loads
   try {
     if (!app.leagueData[league.league_id]) {
-      view.innerHTML = '<p class="muted center">Loading ' + esc(league.name) + '…</p>';
-      app.leagueData[league.league_id] = await loadLeague(league, week);
+      if (NET.mode !== 'cache') view.innerHTML = '<p class="muted center">Loading ' + esc(league.name) + '…</p>';
+      // Keep your trade picks and chosen recap week when the data refreshes.
+      app.leagueData[league.league_id] = Object.assign(await loadLeague(league, week), app.uiKeep[league.league_id] || {});
     }
     if (!stillHere()) return;
     const d = app.leagueData[league.league_id];
@@ -96,7 +106,8 @@ async function showLeague() {
     if (!stillHere()) return;
     view.innerHTML = renderWaivers(d.waivers, app.waiverOpts);
   } catch (err) {
-    if (stillHere()) view.innerHTML = renderError(err.message);
+    // While drawing from saved copies, a missing copy just means "wait for the live data".
+    if (stillHere() && NET.mode !== 'cache') view.innerHTML = renderError(err.message);
   }
 }
 
@@ -242,27 +253,60 @@ function fillLeaguePicker() {
   sel.value = app.leagueId;
 }
 
+// One full load. In 'cache' mode everything comes from saved copies (instant); errors stay quiet.
+async function loadAll(forcePlayers, mode) {
+  NET.mode = mode; NET.offline = false; NET.oldest = null;
+  // Remember on-screen choices (trade picks, recap week) so a refresh doesn't wipe them.
+  for (const id in app.leagueData) {
+    const d = app.leagueData[id];
+    app.uiKeep[id] = { trade: d.trade, recapWeek: d.recapWeek };
+  }
+  app.leagueData = {};
+  clearStatsCache();
+  // Wait for both to finish (even if one fails) so nothing from this pass keeps running into the next.
+  const [meR, plR] = await Promise.allSettled([loadMe(CONFIG.username), loadPlayers(forcePlayers)]);
+  if (meR.status === 'rejected') throw meR.reason;
+  if (plR.status === 'rejected') throw plR.reason;
+  const me = meR.value, pl = plR.value;
+  app.me = me;
+  app.players = pl.players;
+  app.playersSavedAt = pl.savedAt;
+  app.schedule = await loadSchedule(me.season);
+  if (!me.leagues.length) throw new Error('No ' + me.season + ' leagues found for ' + CONFIG.username + '.');
+  fillLeaguePicker();
+  await showLeague();
+}
+
 async function reloadAll(forcePlayers) {
   const btn = $('#refresh');
   btn.classList.add('spin');
-  app.leagueData = {};
-  clearStatsCache();
   try {
-    const [me, pl] = await Promise.all([loadMe(CONFIG.username), loadPlayers(forcePlayers)]);
-    app.me = me;
-    app.players = pl.players;
-    app.playersSavedAt = pl.savedAt;
-    app.schedule = await loadSchedule(me.season);
-    if (!me.leagues.length) { $('#view').innerHTML = renderError('No ' + me.season + ' leagues found for ' + CONFIG.username + '.'); return; }
-    fillLeaguePicker();
+    // 1. Draw instantly from saved copies (only when opening the app; skipped if nothing saved yet).
+    if (!app.me && !forcePlayers) {
+      try { await loadAll(false, 'cache'); setStatus('saved'); } catch (e) { /* first visit: nothing saved */ }
+    }
+    // 2. Fresh data (or saved copies if there's no signal).
+    await loadAll(forcePlayers, 'network');
+    app.loadedAt = Date.now();
     setStatus();
-    await showLeague();
   } catch (err) {
-    $('#view').innerHTML = renderError(err.message);
+    if (!app.me) $('#view').innerHTML = renderError(err.message);
+    else setStatus();
   } finally {
+    NET.mode = 'network';
     btn.classList.remove('spin');
   }
 }
+
+// Coming back to the app after a while? Refresh automatically.
+let hiddenAt = 0;
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { hiddenAt = Date.now(); return; }
+  if (app.me && hiddenAt && Date.now() - hiddenAt > CONFIG.refreshAfterAwayMinutes * 60000) reloadAll(false);
+});
+
+// Saves the page itself on the phone so it opens with no signal (sw.js).
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 
 $('#league-picker').addEventListener('change', e => {
   app.leagueId = e.target.value;

@@ -2,11 +2,53 @@
 const SLEEPER = 'https://api.sleeper.app/v1';
 const SLEEPER_EXTRA = 'https://api.sleeper.com'; // unofficial extras (NFL schedule)
 
-async function getJSON(url) {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error('Sleeper answered ' + res.status + ' for ' + url);
-  return res.json();
+// ---------- Saved copies of downloads (open instantly, work offline) ----------
+// Every download is also saved on the phone (browser "cache storage", separate from Chained Dice's
+// saves). When the app opens it first draws everything from these saved copies (NET.mode = 'cache'),
+// then downloads fresh data and redraws (NET.mode = 'network'). With no signal, the saved copy is used.
+const NET = { mode: 'network', offline: false, oldest: null };
+const DATA_CACHE = 'sd-data-v1';
+const MAX_SAVED_CHARS = 4e6; // don't save Sleeper's huge raw player list (it has its own trimmed copy)
+
+function noteSavedAt(res) {
+  const t = Number(res.headers.get('x-saved-at')) || null;
+  if (t && (!NET.oldest || t < NET.oldest)) NET.oldest = t;
 }
+
+async function savedCopy(url) {
+  if (typeof caches === 'undefined') return null;
+  try { return await (await caches.open(DATA_CACHE)).match(url); } catch (e) { return null; }
+}
+
+async function cachedJSON(url, opts) {
+  if (NET.mode === 'cache') {
+    const hit = await savedCopy(url);
+    if (!hit) throw new Error('No saved copy yet');
+    noteSavedAt(hit);
+    return hit.json();
+  }
+  let res;
+  try {
+    res = await fetch(url, opts);
+  } catch (networkError) {
+    // No signal: use the saved copy if there is one.
+    const hit = await savedCopy(url);
+    if (!hit) throw new Error('No internet connection, and nothing saved yet.');
+    NET.offline = true;
+    noteSavedAt(hit);
+    return hit.json();
+  }
+  if (!res.ok) throw new Error('Sleeper answered ' + res.status + ' for ' + url);
+  const text = await res.text();
+  if (typeof caches !== 'undefined' && text.length < MAX_SAVED_CHARS) {
+    caches.open(DATA_CACHE).then(c => c.put(url, new Response(text, {
+      headers: { 'content-type': 'application/json', 'x-saved-at': String(Date.now()) },
+    }))).catch(() => {});
+  }
+  return JSON.parse(text);
+}
+
+function getJSON(url) { return cachedJSON(url); }
 
 // Small wrapper around the phone's storage. Never crashes if storage is blocked or full.
 const Store = {
@@ -52,6 +94,7 @@ function expandPlayers(trimmed) {
 }
 
 async function loadPlayers(force) {
+  const mode = NET.mode;
   try { localStorage.removeItem('sd_players_v1'); } catch (e) { /* old saved copy, no longer used */ }
   const saved = Store.get(PLAYER_KEY);
   // The small copy on our own site is rebuilt every hour, so it's worth checking more often.
@@ -62,10 +105,12 @@ async function loadPlayers(force) {
   try {
     let source = 'site', trimmed, savedAt;
     // Fast: the ~160 KB copy built on GitHub (tools/build-data.js). Slow fallback: Sleeper's full ~15 MB list.
-    const site = await fetch('data/players.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : null).catch(() => null);
+    const site = await cachedJSON('data/players.json', { cache: 'no-cache' }).catch(() => null);
     if (site && site.data && Object.keys(site.data).length > 1000) {
       trimmed = site.data; savedAt = site.savedAt;
     } else {
+      // Only fall back to the 15 MB download during a live load, never while drawing saved copies.
+      if (mode === 'cache') throw new Error('No saved player list yet');
       source = 'sleeper';
       trimmed = trimPlayers(await getJSON(SLEEPER + '/players/nfl'));
       savedAt = Date.now();
@@ -141,6 +186,7 @@ async function loadLeague(league, week) {
 
 // Players being added the most across ALL Sleeper leagues recently. [{ player_id, count }]
 let trendingPromise = null;
+function clearTrending() { trendingPromise = null; }
 function loadTrending() {
   if (!trendingPromise) {
     trendingPromise = getJSON(SLEEPER + '/players/nfl/trending/add?lookback_hours=' + CONFIG.waivers.trendingHours + '&limit=' + CONFIG.waivers.trendingLimit)

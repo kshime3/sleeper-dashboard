@@ -20,10 +20,10 @@ function defaultTradeSettings(league) {
 // FantasyPros dynasty values, saved into data/dynasty-values.json once a day by a GitHub Action
 // (tools/update-dynasty.js). Same website as this page, so the phone can read it.
 let dynastyPromise = null;
+function clearDynasty() { dynastyPromise = null; }
 function loadDynastyValues() {
   if (!dynastyPromise) {
-    dynastyPromise = fetch('data/dynasty-values.json', { cache: 'no-cache' })
-      .then(r => r.ok ? r.json() : null).catch(() => null);
+    dynastyPromise = cachedJSON('data/dynasty-values.json', { cache: 'no-cache' }).catch(() => null);
   }
   return dynastyPromise;
 }

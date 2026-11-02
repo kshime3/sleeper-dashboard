@@ -29,4 +29,7 @@
 - Done polish 1: hourly GitHub build makes small data files (player list + each league's points), so opening the app downloads ~0.4 MB instead of ~3.2 MB; results identical either way (checked all tabs/leagues). App reopens on your last tab; Guillotine league listed last.
 - Owner needs to switch GitHub Pages "Source" to "GitHub Actions" for the hourly build to publish.
 
-**Next:** owner switches Pages source + tests; then polish 2 (opens instantly/offline).
+- Owner switched Pages to GitHub Actions; Publish site run succeeded.
+- Done polish 2 (opens instantly / offline): saved copies of all downloads; app draws saved data in ~0.15 s then updates live; works offline with a "📴 Offline" note; page files saved by a service worker (sw.js); refreshes by itself after 5+ min in the background; trade picks and recap week survive refreshes. Fixed a bug where the first-ever open also downloaded Sleeper's 15 MB player list.
+
+**Next:** owner tests; then polish 3 (game status on lineup + live scores).

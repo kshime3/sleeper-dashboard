@@ -26,6 +26,8 @@ The owner is not very technical. Same working style as their Chained Dice projec
 
 - **Pre-built data (faster loading):** GitHub Pages is published by `.github/workflows/publish.yml` (Pages source = GitHub Actions), which first runs `tools/build-data.js`: trimmed player list (`data/players.json`, ~160 KB) and each league's points (`data/stats.json`: per player [season total, games, last 3 weeks]). Both reuse the page's own code (config/sleeper/stats.js via `vm`). The page uses them when present and matching the current week, else falls back to Sleeper's big downloads. These files are gitignored; build locally with the proxy env vars above to test.
 
+- **Saved copies / offline:** every download goes through `cachedJSON` (js/sleeper.js), which also stores it in Cache Storage (`sd-data-v1`, not localStorage). On open, `reloadAll` draws once from saved copies (`NET.mode = 'cache'`, instant), then loads live and redraws; with no signal the saved copy is used and the status says Offline. Anything started in the cache pass must finish before the live pass (allSettled), or it will run in network mode.
+
 ## Leagues (2026)
 
 MFFL (keeper: one keeper, costs a 6th-round pick each year), 🪓 Guillotine MFFL (guillotine: lowest score each week is eliminated; owner already eliminated), LocusLeague (redraft), MFFL Dynasty (dynasty). Notes in `CONFIG.leagueNotes`.
@@ -50,7 +52,8 @@ js/waivers.js         logic: Waiver Wire (free agents, trending adds, weak spots
 js/trade.js           logic: Trade Analyzer (value = blended pts/g − best free agent at the position, × age × injury; settings per league)
 js/standings.js       logic: Standings (guillotine: survivors first) and Weekly Recap (top/low score, blowout, closest, player of the week, best bench, most left on bench) + chat text
 js/ui.js              display: draws each tab
-js/main.js            wires it together: loading, league picker, tabs
+js/main.js            wires it together: two-pass loading (saved copies, then live), league picker, tabs, refresh on return
+sw.js                 service worker: saves the page's own files so it opens offline
 docs/PROGRESS.md      dated session log and next step
 data/dynasty-values.json   FantasyPros dynasty values (written by the updater, don't edit by hand)
 tools/update-dynasty.js    the updater (Node, no installs needed)

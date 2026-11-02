@@ -90,8 +90,7 @@ function recentWeeks(week, count) {
 let builtStatsPromise = null;
 function loadBuiltStats() {
   if (!builtStatsPromise) {
-    builtStatsPromise = fetch('data/stats.json', { cache: 'no-cache' })
-      .then(r => r.ok ? r.json() : null).catch(() => null);
+    builtStatsPromise = cachedJSON('data/stats.json', { cache: 'no-cache' }).catch(() => null);
   }
   return builtStatsPromise;
 }
@@ -123,4 +122,6 @@ function clearStatsCache() {
   for (const k in statsCache) delete statsCache[k];
   for (const k in pointsCache) delete pointsCache[k];
   builtStatsPromise = null;
+  if (typeof clearTrending === 'function') clearTrending();
+  if (typeof clearDynasty === 'function') clearDynasty();
 }
