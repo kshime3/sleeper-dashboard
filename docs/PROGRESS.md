@@ -53,4 +53,6 @@
 
 - Trade tab now starts on **"Any team (search the whole league)"** (owner's idea): pick your players → ideas from every team; their roster list is hidden until you Try an idea or choose a team; choosing "Any team" again clears the other side. Checked: no effect on the share-with-friends plan.
 
+- Game Day score cards are now tappable (owner asked): tap → My Team for that league (› shown on each card).
+
 **Next:** owner tests; ESPN leagues when the owner follows up.

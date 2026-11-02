@@ -373,6 +373,16 @@ async function showGameDay(week) {
   }
 }
 
+// Tap a league's score card on Game Day: open that league on My Team.
+$('#view').addEventListener('click', e => {
+  const card = e.target.closest('[data-goleague]');
+  if (!card) return;
+  app.leagueId = card.dataset.goleague;
+  Store.set('sd_league', app.leagueId);
+  $('#league-picker').value = app.leagueId;
+  switchTab('team');
+});
+
 $('#view').addEventListener('click', e => {
   const b = e.target.closest('[data-gdbench]');
   if (!b) return;
@@ -487,13 +497,14 @@ $('#league-picker').addEventListener('change', e => {
   showLeague();
 });
 
-document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => {
-  document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('active', x === b));
-  app.tab = b.dataset.tab;
+function switchTab(tab) {
+  document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('active', x.dataset.tab === tab));
+  app.tab = tab;
   Store.set('sd_tab', app.tab);
   if (app.me) showLeague();
   window.scrollTo(0, 0);
-}));
+}
+document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
 
 $('#refresh').addEventListener('click', () => reloadAll(false));
 

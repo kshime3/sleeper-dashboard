@@ -411,8 +411,10 @@ function renderGameDay(gd, opts, liveNote) {
       cls = g.rank === g.of ? 'trail' : '';
       right = '<div class="bopp">Rank <b>' + g.rank + '</b> of ' + g.of + '<div class="pmeta">lowest gets chopped</div></div>';
     }
-    html += '<div class="board"><div class="bleague">' + esc(b.short) + '</div>' +
-      '<div class="bme"><b class="' + cls + '">' + f(b.me.points) + '</b><div class="pmeta">' + b.me.left + ' still to play</div></div>' + right + '</div>';
+    html += '<button class="board" data-goleague="' + esc(b.league.league_id) + '" aria-label="Open ' + esc(b.league.name) + ' on My Team">' +
+      '<div class="bleague">' + esc(b.short) + '</div>' +
+      '<div class="bme"><b class="' + cls + '">' + f(b.me.points) + '</b><div class="pmeta">' + b.me.left + ' still to play</div></div>' + right +
+      '<div class="bgo">›</div></button>';
   }
   html += '</div>';
   if (!gd.scoreboards.length) html += '<div class="card">No active teams this week.</div>';
