@@ -122,3 +122,13 @@ async function loadLeague(league, week) {
   ]);
   return { rosters, users, matchups: matchups || [] };
 }
+
+// Players being added the most across ALL Sleeper leagues recently. [{ player_id, count }]
+let trendingPromise = null;
+function loadTrending() {
+  if (!trendingPromise) {
+    trendingPromise = getJSON(SLEEPER + '/players/nfl/trending/add?lookback_hours=' + CONFIG.waivers.trendingHours + '&limit=' + CONFIG.waivers.trendingLimit)
+      .catch(err => { trendingPromise = null; throw err; });
+  }
+  return trendingPromise;
+}

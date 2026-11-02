@@ -4,6 +4,7 @@ const app = {
   leagueData: {},      // league_id -> { rosters, users, matchups }
   leagueId: null,
   tab: 'team',
+  waiverOpts: Object.assign({ filter: 'ALL', sort: 'trend' }, Store.get('sd_waiver_opts') || {}),
 };
 
 const $ = sel => document.querySelector(sel);
@@ -26,30 +27,61 @@ async function showLeague() {
   const view = $('#view');
   if (!league) { view.innerHTML = renderError('No leagues found for ' + CONFIG.username + '.'); return; }
 
-  if (app.tab !== 'team') {
-    const names = { waivers: 'Waiver Wire', trade: 'Trade Analyzer', standings: 'Standings & Recap' };
+  if (app.tab === 'trade' || app.tab === 'standings') {
+    const names = { trade: 'Trade Analyzer', standings: 'Standings & Recap' };
     view.innerHTML = renderComingSoon(names[app.tab]);
     return;
   }
 
   const week = currentWeek();
+  const tab = app.tab;
+  const stillHere = () => app.leagueId === league.league_id && app.tab === tab; // you may switch while it loads
   try {
     if (!app.leagueData[league.league_id]) {
       view.innerHTML = '<p class="muted center">Loading ' + esc(league.name) + '…</p>';
       app.leagueData[league.league_id] = await loadLeague(league, week);
     }
-    if (app.leagueId !== league.league_id) return; // you switched leagues while it loaded
+    if (!stillHere()) return;
     const d = app.leagueData[league.league_id];
-    const t = analyzeMyTeam({
+    const byes = byeTeams(app.schedule, week, app.players);
+    const team = analyzeMyTeam({
       league, rosters: d.rosters, users: d.users, matchups: d.matchups,
-      players: app.players, week, userId: app.me.user.user_id,
-      byes: byeTeams(app.schedule, week, app.players),
+      players: app.players, week, userId: app.me.user.user_id, byes,
     });
-    view.innerHTML = renderMyTeam(t, league);
+
+    if (tab === 'team') { view.innerHTML = renderMyTeam(team, league); return; }
+
+    // Waiver Wire: needs season stats, last week's stats and trending adds (a few MB, once per visit).
+    if (!d.waivers) {
+      view.innerHTML = '<p class="muted center">Loading stats and trending players…</p>';
+      const lastWeek = week > 1 ? week - 1 : 0;
+      const [seasonStats, lastWeekStats, trending] = await Promise.all([
+        loadStats(app.me.season, 0),
+        lastWeek ? loadStats(app.me.season, lastWeek).catch(() => null) : null,
+        loadTrending().catch(() => []),
+      ]);
+      d.waivers = analyzeWaivers({
+        league, rosters: d.rosters, players: app.players, seasonStats, lastWeekStats, trending,
+        userId: app.me.user.user_id, byes, team,
+      });
+    }
+    if (!stillHere()) return;
+    view.innerHTML = renderWaivers(d.waivers, app.waiverOpts);
   } catch (err) {
-    view.innerHTML = renderError(err.message);
+    if (stillHere()) view.innerHTML = renderError(err.message);
   }
 }
+
+// Waiver filter and sort buttons (no new downloads, just redraw).
+$('#view').addEventListener('click', e => {
+  const f = e.target.closest('[data-wfilter]'), srt = e.target.closest('[data-wsort]');
+  if (!f && !srt) return;
+  if (f) app.waiverOpts.filter = f.dataset.wfilter;
+  if (srt) app.waiverOpts.sort = srt.dataset.wsort;
+  Store.set('sd_waiver_opts', app.waiverOpts);
+  const d = app.leagueData[app.leagueId];
+  if (d && d.waivers) $('#view').innerHTML = renderWaivers(d.waivers, app.waiverOpts);
+});
 
 function fillLeaguePicker() {
   const sel = $('#league-picker');

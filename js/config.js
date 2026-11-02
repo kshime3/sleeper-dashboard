@@ -4,6 +4,15 @@ const CONFIG = {
   playerCacheHours: 24,         // re-download the big player list at most this often
   scheduleCacheHours: 24,       // same for the NFL schedule (used for bye weeks)
 
+  waivers: {
+    trendingHours: 24,     // "trending" = most added across all Sleeper leagues in this many hours
+    trendingLimit: 200,    // how many trending players to ask Sleeper for
+    showCount: 30,         // how many free agents to list
+    minGamesForPoints: 2,  // when sorting by points per game, ignore players with fewer games
+    fillInsPerHole: 3,     // for a starter who's out/on bye, star this many free agents who could fill in
+    weakIfRankBelow: 0.5,  // a position is "weak" if you rank in the bottom half of your league there
+  },
+
   // Your notes about each league (matched by league name). Sleeper's own settings
   // don't always say this clearly, so we write it down.
   leagueNotes: {

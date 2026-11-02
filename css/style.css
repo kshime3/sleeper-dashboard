@@ -117,3 +117,23 @@ details[open] summary { margin-bottom: 4px; }
 }
 .tabs button span { font-size: 20px; line-height: 1; }
 .tabs button.active { color: var(--accent); font-weight: 600; }
+
+/* Waiver Wire */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-size: 13px; padding: 4px 9px; border-radius: 999px; background: var(--card-2); border: 1px solid var(--line); }
+.chip.weak { border-color: var(--bad); background: var(--bad-bg); }
+.chip.ok b { color: var(--good); }
+.chip.weak b { color: var(--bad); }
+.filters { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 8px; scrollbar-width: none; }
+.filters::-webkit-scrollbar { display: none; }
+.fchip {
+  flex: none; padding: 7px 12px; border-radius: 999px; cursor: pointer;
+  background: var(--card); border: 1px solid var(--line); font-size: 14px;
+}
+.fchip.on { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+.seg { display: grid; grid-template-columns: 1fr 1fr; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 3px; margin-bottom: 12px; }
+.seg button { border: 0; background: none; padding: 8px 4px; border-radius: 8px; cursor: pointer; font-size: 14px; color: var(--muted); }
+.seg button.on { background: var(--card-2); color: var(--text); font-weight: 600; }
+.wrow.fits { background: linear-gradient(90deg, rgba(25, 194, 181, .13), transparent 75%); }
+.fit { font-size: 12px; color: var(--accent); margin-top: 2px; }
+.wrow .ppts { font-size: 13px; }

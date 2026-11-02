@@ -100,3 +100,72 @@ function renderError(msg) {
   return '<div class="card error"><div class="pname">Something went wrong</div><div class="pmeta">' + esc(msg) +
     '</div><p><button class="btn" onclick="location.reload()">Try again</button></p></div>';
 }
+
+function fmtCount(n) {
+  if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M';
+  if (n >= 1e3) return Math.round(n / 1e3) + 'k';
+  return String(n);
+}
+function ordinal(n) {
+  const s = ['th', 'st', 'nd', 'rd'], v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+
+function renderWaivers(w, opts) {
+  let html = '';
+  // A remembered filter might not exist in this league (e.g. K, or "My needs" with no team).
+  const valid = ['ALL'].concat(w.hasTeam ? ['NEEDS'] : [], w.positions);
+  if (!valid.includes(opts.filter)) opts = Object.assign({}, opts, { filter: 'ALL' });
+
+  // 1. Your weak spots
+  html += '<div class="card"><h2>Your weak spots</h2>';
+  if (!w.hasTeam) {
+    html += '<div class="pmeta">You don\'t have players in this league, so there\'s nothing to compare. The list below still shows who\'s available.</div>';
+  } else {
+    html += '<div class="chips">' + w.strength.map(s =>
+      '<span class="chip ' + (s.weak ? 'weak' : 'ok') + '" title="Your top ' + s.n + ' ' + s.pos + ' average ' + s.avg.toFixed(1) + ' pts/g (league ' + s.leagueAvg.toFixed(1) + ')">' +
+      '<b>' + s.pos + '</b> ' + ordinal(s.rank) + ' of ' + s.teams + '</span>').join('') + '</div>';
+    const weak = w.strength.filter(s => s.weak);
+    html += '<div class="pmeta small" style="margin-top:6px">' + (weak.length
+      ? 'Red = you rank in the bottom half of your league there (points per game of your starters at that position). Free agents who\'d beat your weakest starter there get a ⭐.'
+      : 'You\'re in the top half of your league at every position.') + '</div>';
+    for (const h of w.holes) {
+      html += '<div class="alert bad">⛔ This week: ' + esc(h.label) + ' — ' + esc(h.who) + ' ' + esc(h.why) + '</div>';
+    }
+  }
+  if (w.faab && w.hasTeam) html += '<div class="pmeta" style="margin-top:8px">💰 FAAB left: <b>$' + w.faab.left + '</b> of $' + w.faab.budget + '</div>';
+  html += '</div>';
+
+  // 2. Filters
+  const chip = (val, label) => '<button class="fchip' + (opts.filter === val ? ' on' : '') + '" data-wfilter="' + val + '">' + label + '</button>';
+  html += '<div class="filters">' + chip('ALL', 'All') + (w.hasTeam ? chip('NEEDS', '⭐ My needs') : '') + w.positions.map(p => chip(p, p)).join('') + '</div>';
+  html += '<div class="seg">' +
+    '<button data-wsort="trend" class="' + (opts.sort === 'trend' ? 'on' : '') + '">🔥 Trending adds</button>' +
+    '<button data-wsort="ppg" class="' + (opts.sort === 'ppg' ? 'on' : '') + '">📊 Points per game</button></div>';
+
+  // 3. The list
+  const list = waiverList(w, opts.filter, opts.sort);
+  html += '<div class="card">';
+  if (!list.length) {
+    html += '<div class="pmeta">' + (opts.filter === 'NEEDS'
+      ? 'No free agent beats your current starters at your weak spots right now. Good news!'
+      : 'Nobody matches. Try another filter' + (opts.sort === 'trend' ? ' or sort by points per game' : '') + '.') + '</div>';
+  }
+  for (const e of list) {
+    const p = e.player;
+    const worst = e.flags.some(f => f.level === 'bad') ? 'bad' : '';
+    const tags = e.flags.map(f => '<span class="tag ' + f.level + '">' + esc(f.tag) + '</span>').join('');
+    html += '<div class="row wrow' + (e.fits.length ? ' fits' : '') + (worst ? ' flag-bad' : '') + '">' +
+      '<div class="slot ' + esc(p.pos) + '">' + esc(p.pos) + '</div>' +
+      '<div><div class="pname">' + (e.fits.length ? '⭐ ' : '') + esc(p.name) + tags + '</div>' +
+        '<div class="pmeta">' + esc(p.team) + ' · ' + (e.line.games ? e.line.ppg.toFixed(1) + ' pts/g in ' + e.line.games + ' g' : 'no games yet') +
+        (e.lastWeek != null ? ' · last wk ' + e.lastWeek.toFixed(1) : '') + '</div>' +
+        e.fits.map(f => '<div class="fit">' + esc(f) + '</div>').join('') +
+      '</div>' +
+      '<div class="ppts">' + (e.trend ? '<div>🔥' + fmtCount(e.trend) + '</div><div class="pmeta">adds</div>' : '') + '</div>' +
+    '</div>';
+  }
+  html += '<div class="pmeta small" style="margin-top:8px">Points use this league\'s scoring. "Adds" = times added across all Sleeper leagues in the last ' + CONFIG.waivers.trendingHours + ' hours.</div>';
+  html += '</div>';
+  return html;
+}

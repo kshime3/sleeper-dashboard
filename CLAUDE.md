@@ -20,6 +20,7 @@ The owner is not very technical. Same working style as their Chained Dice projec
 
 - `https://api.sleeper.app/v1/...` — official, free, no key: user, state, leagues, rosters, users, matchups, players, trending.
 - `https://api.sleeper.com/schedule/nfl/regular/<season>` — unofficial; used only for bye weeks. The app works without it.
+- `https://api.sleeper.com/stats/nfl/<season>[/<week>]?season_type=regular&position[]=...` — unofficial raw stats (~2 MB season, ~0.7 MB a week). Kept in memory only. Fantasy points = each stat × the league's `scoring_settings` value (verified exact vs. league matchup scores, week 7 2026, all 4 leagues).
 
 ## Leagues (2026)
 
@@ -39,7 +40,9 @@ css/style.css         colors and layout (dark by default, light if the phone is 
 img/icon.svg          the icon; icon-*.png are renders of it
 js/config.js          ALL settings (username, cache times, league notes, lineup slots, injury tags)
 js/sleeper.js         logic: Sleeper API calls, saved player list (refreshed at most daily), schedule/byes
+js/stats.js           logic: season/weekly stats and league-scored fantasy points
 js/myteam.js          logic: My Team (lineup, matchup, guillotine status, flags, bench swap ideas)
+js/waivers.js         logic: Waiver Wire (free agents, trending adds, weak spots, upgrade stars, FAAB)
 js/ui.js              display: draws each tab
 js/main.js            wires it together: loading, league picker, tabs
 docs/PROGRESS.md      dated session log and next step

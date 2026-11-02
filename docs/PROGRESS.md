@@ -7,4 +7,7 @@
 - Tested in a phone-sized browser against all 4 real leagues: no errors.
 - Bye weeks confirmed working (week 8 byes: HOU, NO, NYG, SF). Code pushed to github.com/kshime3/sleeper-dashboard.
 
-**Next:** owner tests My Team on the phone, then build Waiver Wire.
+- Owner turned on GitHub Pages: live at https://kshime3.github.io/sleeper-dashboard/ and working on their phone.
+- Built **Waiver Wire**: weak spots (your rank at each position by starters' points per game; bottom half = red), this week's holes, FAAB left; free agents filtered by position or "My needs", sorted by trending adds or points per game; ⭐ on free agents who beat your weakest starter at a weak position, or who are among the best 3 fill-ins for a starter who's out/on bye. Points use each league's own scoring. Tested in all 4 leagues, no errors.
+
+**Next:** owner tests Waiver Wire on the phone, then build Trade Analyzer (propose a scoring method first).
