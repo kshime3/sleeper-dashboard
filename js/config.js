@@ -29,6 +29,20 @@ const CONFIG = {
     youthBonusMax: 0.15,     // ...up to this much
     injuryCut: { Questionable: 0.05, Doubtful: 0.15, Out: 0.20, IR: 0.40, PUP: 0.40, Sus: 0.40, NA: 0.40, COV: 0.20, DNR: 0.40 },
     minGamesForReplacement: 3, // free agents need this many games to count as "replacement"
+    ideas: {
+      similarRange: 0.15,    // "similar value" = within 15%
+      fairRange: 0.12,       // trade ideas: the two sides within 12% of each other
+      poolSize: 12,          // look at each team's 12 most valuable players/picks
+      perTeam: 2,            // at most 2 ideas per team (variety)
+      showIdeas: 6,
+      showSimilar: 8,
+      minGamesForTrend: 4,   // hot/cold needs at least 4 games this season...
+      trendPoints: 3,        // ...and recent average at least 3 pts/g above or below the season...
+      trendShare: 0.3,       // ...and at least 30% above or below it
+      fpMove: 10,            // dynasty: show ↑/↓ when FantasyPros value moved at least 10 this month
+      minPieceShare: 0.25,   // in a 2-piece idea, each piece must be worth at least 25% of what you give
+      twoPiecePenalty: 0.75, // prefer 1-for-1 ideas over 2-for-1 when they're about as good
+    },
   },
 
   // Your notes about each league (matched by league name). Sleeper's own settings

@@ -41,4 +41,7 @@
 - Done polish 5: **player details on tap** (My Team, Game Day, Waivers; Trade keeps tap-to-pick). Panel slides up: position, depth chart spot, team, number, age, years; injury status + body part + notes; this week's game (live); points in that league's scoring (season, per game, last 3 weeks); and in each of your leagues whether he's your starter/bench/IR, on another team (whose), or a free agent. Closes with ✕, tapping outside, or the phone's Back button. Player list now keeps injury details, depth chart and jersey number (saved list renamed sd_players_v3).
 - All 5 chosen polish items are done.
 
-**Next:** owner tests; more ideas from the owner.
+- Owner's next two plans: 1) trade suggestions, 2) add the owner's two ESPN leagues (waiting on: public or private, league IDs, which tabs).
+- Done plan 1: **Trade ideas** on the Trade tab. Pick your player(s) to give → 💡 card: up to 6 fair ideas (1- or 2-piece packages within 12%, no filler pieces) from any team, ranked by mutual need (fills your bottom-half position, ideally where they're top-third deep; gives them a position they're weak at; buy-low/sell-high bonus), each with reasons and "Try it" (loads it into the trade check, switching partner). Plus "Players with similar value" (±15%, ⭐ if it fills a weak spot). Hot/cold tags (last 3 weeks ≥30% and ≥3 pts/g above/below season) and, in dynasty, FantasyPros ↑/↓ (±10 this month). Settings in CONFIG.trade.ideas.
+
+**Next:** owner tests trade ideas; then plan 2 (ESPN leagues) once the owner answers the ESPN questions.

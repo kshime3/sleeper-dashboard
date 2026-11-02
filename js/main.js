@@ -157,11 +157,18 @@ function buildTrade(league, d) {
     .sort((a, b) => picks[b].value - picks[a].value);
   const cmp = compareTrade(values, d.trade.give, d.trade.get);
   cmp.fp = usesFP(league, settings, app.fp) ? app.fp : null;
+  // Trade ideas for the players you picked to give (all teams, not just the one selected above).
+  const ideas = d.trade.give.length ? tradeIdeas({
+    values, mine, giveIds: d.trade.give,
+    needs: teamNeeds(league, d.rosters, app.players, d.points),
+    others: others.map(o => ({ roster_id: o.roster_id, name: o.name, ids: o.roster.players.concat(picksOf(o.roster_id)) })),
+  }) : null;
+  app.tradeIdeasNow = ideas;
   return {
     hasTeam, settings, values, state: d.trade, pos: app.tradePos, positions: leaguePositions(league), opponents: others, oppName: opp.name,
     myIds: mine.players.concat(picksOf(mine.roster_id)), oppIds: opp.roster.players.concat(picksOf(opp.roster_id)),
     hasPicks: Object.keys(picks).length > 0,
-    cmp, fpAvailable: !!app.fp && leagueFormat(league) === 'dynasty',
+    cmp, ideas, fpAvailable: !!app.fp && leagueFormat(league) === 'dynasty',
   };
 }
 
@@ -175,6 +182,16 @@ $('#view').addEventListener('click', e => {
   if (posChip) {
     app.tradePos = posChip.dataset.tpos;
     $('#trade-dyn').innerHTML = renderTradeDynamic(buildTrade(currentLeague(), d));
+    return;
+  }
+  const tryIt = e.target.closest('[data-ttry]');
+  if (tryIt && app.tradeIdeasNow) {
+    // "Try it": load this idea into the trade check (switches the trade partner if needed).
+    const [kind, i] = tryIt.dataset.ttry.split(':');
+    const idea = kind === 'idea' ? app.tradeIdeasNow.ideas[+i] : app.tradeIdeasNow.similar[+i];
+    if (!idea) return;
+    d.trade = { opp: idea.team.roster_id, give: d.trade.give.slice(), get: (idea.pkg || [idea.b]).map(b => b.player.id) };
+    showLeague().then(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
     return;
   }
   if (pick) {

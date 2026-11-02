@@ -11,14 +11,15 @@ function leaguePositions(league) {
 
 // How strong is each team at each position? Compare the average points per game of each team's
 // top N players there (N = how many dedicated lineup spots that position has, at least 1).
-function positionStrength(ctx) {
-  const { league, rosters, players, points, userId } = ctx;
+// For every team: average points per game of its top N players at each position
+// (N = that position's dedicated lineup spots, at least 1), ranked across the league.
+// Returns { pos -> [{ roster_id, avg, top, rank }] (best first) }.
+function teamStrengths(league, rosters, players, points) {
   const alive = rosters.filter(r => (r.players || []).length);
-  const mine = alive.find(r => isMine(r, userId));
-  const out = [];
+  const out = {};
   for (const pos of leaguePositions(league)) {
     const n = Math.max(1, (league.roster_positions || []).filter(s => s === pos).length);
-    const teams = alive.map(r => {
+    out[pos] = alive.map(r => {
       const top = (r.players || [])
         .map(id => players[id])
         .filter(p => p && p.positions.includes(pos))
@@ -26,21 +27,28 @@ function positionStrength(ctx) {
         .sort((a, b) => b.ppg - a.ppg)
         .slice(0, n);
       while (top.length < n) top.push({ player: null, ppg: 0 }); // an empty spot counts as 0
-      const avg = top.reduce((s, x) => s + x.ppg, 0) / n;
-      return { roster_id: r.roster_id, avg, top };
+      return { roster_id: r.roster_id, n, avg: top.reduce((s, x) => s + x.ppg, 0) / n, top };
     }).sort((a, b) => b.avg - a.avg);
-    if (!mine) continue;
-    const rank = teams.findIndex(t => t.roster_id === mine.roster_id) + 1;
-    const me = teams[rank - 1];
-    const weakest = me.top[me.top.length - 1]; // your worst "starting-level" player at this position
-    out.push({
-      pos, n, rank, teams: teams.length, avg: me.avg,
-      leagueAvg: teams.reduce((s, t) => s + t.avg, 0) / teams.length,
-      weak: rank > teams.length * CONFIG.waivers.weakIfRankBelow,
-      weakest,
-    });
+    out[pos].forEach((t, i) => { t.rank = i + 1; });
   }
   return out;
+}
+
+function positionStrength(ctx) {
+  const { league, rosters, players, points, userId } = ctx;
+  const mine = rosters.find(r => isMine(r, userId) && (r.players || []).length);
+  if (!mine) return [];
+  const all = teamStrengths(league, rosters, players, points);
+  return Object.keys(all).map(pos => {
+    const teams = all[pos];
+    const me = teams.find(t => t.roster_id === mine.roster_id);
+    return {
+      pos, n: me.n, rank: me.rank, teams: teams.length, avg: me.avg,
+      leagueAvg: teams.reduce((s, t) => s + t.avg, 0) / teams.length,
+      weak: me.rank > teams.length * CONFIG.waivers.weakIfRankBelow,
+      weakest: me.top[me.top.length - 1], // your worst "starting-level" player at this position
+    };
+  });
 }
 
 function analyzeWaivers(ctx) {

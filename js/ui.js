@@ -200,6 +200,10 @@ function fmtValue(b) {
   return b.value.toFixed(1);
 }
 
+function trendHtml(b) {
+  return trendTags(b).map(t => '<span class="ttag ' + t.kind + '" title="' + esc(t.text) + '">' + esc(t.label) + '</span>').join('');
+}
+
 function tradeCard(b) {
   const p = b.player;
   if (b.isPick) {
@@ -210,6 +214,7 @@ function tradeCard(b) {
   const tags = b.flags.map(f => '<span class="tag ' + f.level + '">' + esc(f.tag) + '</span>').join('');
   return '<div class="tcard">' +
     '<div class="pname"><span class="slot inline ' + esc(p.pos) + '">' + esc(p.pos) + '</span> ' + esc(p.name) + tags + '</div>' +
+    (trendTags(b).length ? '<div>' + trendHtml(b) + '</div><div class="pmeta small">' + esc(trendTags(b).map(t => t.text).join('; ')) + '</div>' : '') +
     '<div class="pmeta">' + esc(p.team || 'no team') + (p.age ? ' · age ' + p.age : '') + (p.injury ? ' · ' + esc(p.injury) : '') + '</div>' +
     '<div class="tstat"><span>Season</span><b>' + b.season.total.toFixed(1) + '</b> <span class="pmeta">(' + b.season.ppg.toFixed(1) + '/g, ' + b.season.games + ' g)</span></div>' +
     '<div class="tstat"><span>Wk ' + b.recent.map(r => r.week).join(', ') + '</span><b>' + recentText(b) + '</b></div>' +
@@ -246,18 +251,48 @@ function pickList(title, ids, values, picked, side, pos) {
     const tags = b.flags.map(f => '<span class="tag ' + f.level + '">' + esc(f.tag) + '</span>').join('');
     return '<button class="row pick' + (on ? ' on' : '') + '" data-tpick="' + side + '" data-id="' + esc(p.id) + '">' +
       '<div class="slot ' + esc(p.pos) + '">' + esc(p.pos) + '</div>' +
-      '<div><div class="pname">' + (on ? '✓ ' : '') + esc(p.name) + tags + '</div><div class="pmeta">' + (b.isPick
+      '<div><div class="pname">' + (on ? '✓ ' : '') + esc(p.name) + tags + trendHtml(b) + '</div><div class="pmeta">' + (b.isPick
         ? (b.from ? 'From ' + esc(b.from) : 'Own pick') + (b.est ? ' · estimate' : '')
         : esc(p.team || 'no team') + (p.age ? ' · ' + p.age + ' yrs' : '') + ' · ' + b.blended.toFixed(1) + '/g') + '</div></div>' +
       '<div class="ppts">' + fmtValue(b) + '<div class="pmeta">value</div></div></button>';
   }).join('') + '</div>';
 }
 
+function ideasCard(ideas) {
+  if (!ideas) {
+    return '<div class="card ideas"><h2>💡 Trade ideas</h2><div class="pmeta">Tap one or more of <b>your</b> players below to see players worth about the same, and fair trades that help both teams.</div></div>';
+  }
+  const val = b => fmtValue(b);
+  const who = b => (b.isPick ? '' : '<span class="slot inline ' + esc(b.player.pos) + '">' + esc(b.player.pos) + '</span> ') + esc(b.player.name);
+  let html = '<div class="card ideas"><h2>💡 Trade ideas <span class="pmeta">· you give ' + ideas.V.toFixed(ideas.V % 1 ? 1 : 0) + ' in value</span></h2>';
+  if (!ideas.ideas.length) {
+    html += '<div class="pmeta">No fair 1- or 2-piece packages found on other teams for this. Try adding or swapping a player.</div>';
+  }
+  ideas.ideas.forEach((idea, i) => {
+    html += '<div class="idea"><div class="idea-top"><div><div class="pmeta">From ' + esc(idea.team.name) + '</div>' +
+      '<div class="pname">' + idea.pkg.map(who).join(' + ') + '</div>' +
+      '<div class="pmeta">Value ' + idea.pkg.map(val).join(' + ') + (idea.pkg.length > 1 ? ' = ' + idea.value.toFixed(idea.value % 1 ? 1 : 0) : '') +
+        ' · ' + (idea.value >= ideas.V ? '+' : '−') + Math.round(idea.off * 100) + '% vs yours</div></div>' +
+      '<button class="btn small-btn" data-ttry="idea:' + i + '">Try it</button></div>' +
+      (idea.reasons.length ? '<div class="reasons">' + [...new Set(idea.reasons)].map(r => '<span class="reason">' + esc(r) + '</span>').join('') + '</div>' : '') +
+    '</div>';
+  });
+  if (ideas.similar.length) {
+    html += '<details class="similar"><summary>Players with similar value (' + ideas.similar.length + ')</summary>';
+    ideas.similar.forEach((x, i) => {
+      html += '<div class="sim"><div>' + (x.fills ? '⭐ ' : '') + who(x.b) + trendHtml(x.b) + '<div class="pmeta">' + esc(x.team.name) + ' · value ' + val(x.b) + '</div></div>' +
+        '<button class="btn alt small-btn" data-ttry="sim:' + i + '">Try</button></div>';
+    });
+    html += '<div class="pmeta small">⭐ = a position where you\'re in the bottom half of the league.</div></details>';
+  }
+  return html + '<div class="pmeta small" style="margin-top:8px">Ideas use the values on this tab and each team\'s weak and deep positions (points per game of their starters there). They\'re conversation starters, not guarantees.</div></div>';
+}
+
 function renderTradeDynamic(t) {
   const positions = t.positions.concat(t.hasPicks ? ['PICK'] : []);
   const pos = ['ALL'].concat(positions).includes(t.pos) ? t.pos : 'ALL';
   const chip = (val, label) => '<button class="fchip' + (pos === val ? ' on' : '') + '" data-tpos="' + val + '">' + label + '</button>';
-  return tradeResult(t.cmp) +
+  return tradeResult(t.cmp) + ideasCard(t.ideas) +
     '<div class="filters">' + chip('ALL', 'All') + positions.map(p => chip(p, p === 'PICK' ? 'Picks' : p)).join('') + '</div>' +
     pickList('Your players', t.myIds, t.values, t.state.give, 'give', pos) +
     pickList(t.oppName + '\'s players', t.oppIds, t.values, t.state.get, 'get', pos);

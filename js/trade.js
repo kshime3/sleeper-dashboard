@@ -219,3 +219,112 @@ function draftPickValues(ctx) {
   }
   return out;
 }
+
+// ---------- Trade ideas ----------
+// Hot / cold: is he scoring well above or below his season average lately? (and, in dynasty,
+// did FantasyPros move his value a lot this month?) Returns [{ kind, label, text }].
+function trendTags(b) {
+  const out = [];
+  if (!b || b.isPick) return out;
+  const t = CONFIG.trade.ideas;
+  const played = (b.recent || []).filter(r => r.pts != null).length;
+  if (b.recentPpg != null && b.season.games >= t.minGamesForTrend && played >= 2 && b.season.ppg >= 5) {
+    const diff = b.recentPpg - b.season.ppg;
+    if (diff >= t.trendPoints && b.recentPpg >= b.season.ppg * (1 + t.trendShare)) {
+      out.push({ kind: 'hot', label: '🔥 Hot', text: 'Last ' + played + ' games: ' + b.recentPpg.toFixed(1) + '/g vs ' + b.season.ppg.toFixed(1) + '/g for the season' });
+    } else if (-diff >= t.trendPoints && b.recentPpg <= b.season.ppg * (1 - t.trendShare)) {
+      out.push({ kind: 'cold', label: '🧊 Cold', text: 'Last ' + played + ' games: ' + b.recentPpg.toFixed(1) + '/g vs ' + b.season.ppg.toFixed(1) + '/g for the season' });
+    }
+  }
+  if (b.fp && b.fp.chg) {
+    const n = parseInt(String(b.fp.chg).replace('−', '-'), 10);
+    if (n >= t.fpMove) out.push({ kind: 'up', label: '↑ ' + b.fp.chg, text: 'FantasyPros value up ' + n + ' this month' });
+    if (n <= -t.fpMove) out.push({ kind: 'down', label: '↓ ' + String(b.fp.chg).replace('-', '−'), text: 'FantasyPros value down ' + (-n) + ' this month' });
+  }
+  return out;
+}
+
+// Each team's weak spots (bottom half of the league at a position) and deep spots (top third).
+function teamNeeds(league, rosters, players, points) {
+  const strengths = teamStrengths(league, rosters, players, points);
+  const needs = {};
+  for (const pos in strengths) {
+    const teams = strengths[pos];
+    for (const t of teams) {
+      const n = needs[t.roster_id] = needs[t.roster_id] || { weak: {}, deep: {}, teams: teams.length };
+      if (t.rank > teams.length / 2) n.weak[pos] = t.rank;
+      if (t.rank <= Math.ceil(teams.length / 3)) n.deep[pos] = t.rank;
+    }
+  }
+  return needs;
+}
+
+// Ideas for what you could get for the players you've picked to give.
+// ctx: { values, mine, others: [{ roster_id, name, ids }], giveIds, needs }
+function tradeIdeas(ctx) {
+  const { values, mine, others, giveIds, needs } = ctx;
+  const cfg = CONFIG.trade.ideas;
+  const give = giveIds.map(id => values[id]).filter(Boolean);
+  const V = give.reduce((a, b) => a + b.value, 0);
+  if (!give.length || V <= 0) return { V, similar: [], ideas: [] };
+  const myNeeds = needs[mine.roster_id] || { weak: {}, deep: {} };
+  const givePos = [...new Set(give.filter(b => !b.isPick).map(b => b.player.pos))];
+  const off = (v) => Math.abs(v - V) / Math.max(v, V);
+
+  // 1. Similar value: single players (or picks) on other teams worth about the same.
+  const similar = [];
+  for (const t of others) {
+    for (const id of t.ids) {
+      const b = values[id];
+      if (!b || b.value <= 0 || off(b.value) > cfg.similarRange) continue;
+      similar.push({ team: t, b, off: off(b.value), fills: !b.isPick && myNeeds.weak[b.player.pos] });
+    }
+  }
+  similar.sort((a, b) => a.off - b.off);
+
+  // 2. Trade ideas: fair 1- or 2-piece packages from each team, ranked by how well they help BOTH sides.
+  const ideas = [];
+  for (const t of others) {
+    const theirNeeds = needs[t.roster_id] || { weak: {}, deep: {} };
+    const pool = t.ids.map(id => values[id]).filter(b => b && b.value > 0)
+      .sort((a, b) => b.value - a.value).slice(0, cfg.poolSize);
+    const packages = pool.map(b => [b]);
+    for (let i = 0; i < pool.length; i++) for (let j = i + 1; j < pool.length; j++) packages.push([pool[i], pool[j]]);
+    for (const pkg of packages) {
+      const value = pkg.reduce((a, b) => a + b.value, 0);
+      const o = off(value);
+      if (o > cfg.fairRange) continue;
+      // No "filler": in a 2-piece package, each piece must be worth a real share of the deal.
+      if (pkg.length > 1 && pkg.some(b => b.value < V * cfg.minPieceShare)) continue;
+      let score = 1 - o / cfg.fairRange; // fairer = better
+      const reasons = [];
+      const filled = new Set(); // count each position once
+      for (const b of pkg) {
+        if (b.isPick) continue;
+        const pos = b.player.pos;
+        if (!filled.has(pos) && myNeeds.weak[pos] && theirNeeds.deep[pos]) {
+          score += 2; reasons.push('Fills your ' + pos + ' (you\'re ' + ordinal(myNeeds.weak[pos]) + ', they\'re ' + ordinal(theirNeeds.deep[pos]) + ')');
+        } else if (!filled.has(pos) && myNeeds.weak[pos]) {
+          score += 1; reasons.push('Fills your ' + pos + ' (you\'re ' + ordinal(myNeeds.weak[pos]) + ')');
+        }
+        filled.add(pos);
+        if (trendTags(b).some(x => x.kind === 'cold')) { score += 0.5; reasons.push('Buy low: ' + b.player.name + ' is in a slump'); }
+      }
+      for (const pos of givePos) {
+        if (theirNeeds.weak[pos]) { score += 1; reasons.push('They need ' + pos + ' (' + ordinal(theirNeeds.weak[pos]) + ')'); }
+      }
+      if (give.some(b => trendTags(b).some(x => x.kind === 'hot'))) { score += 0.5; reasons.push('Sell high: your player is on a hot streak'); }
+      if (pkg.length === 2) score -= cfg.twoPiecePenalty; // simpler trades are easier to agree on
+      ideas.push({ team: t, pkg, value, off: o, score, reasons });
+    }
+  }
+  ideas.sort((a, b) => b.score - a.score);
+  // Keep variety: at most a couple of ideas per team.
+  const perTeam = {}, picked = [];
+  for (const idea of ideas) {
+    perTeam[idea.team.roster_id] = (perTeam[idea.team.roster_id] || 0) + 1;
+    if (perTeam[idea.team.roster_id] <= cfg.perTeam) picked.push(idea);
+    if (picked.length >= cfg.showIdeas) break;
+  }
+  return { V, similar: similar.slice(0, cfg.showSimilar), ideas: picked };
+}

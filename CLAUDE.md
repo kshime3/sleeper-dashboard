@@ -52,8 +52,8 @@ js/sleeper.js         logic: Sleeper API calls, saved player list (refreshed at 
 js/stats.js           logic: season/weekly stats and league-scored fantasy points
 js/games.js           logic: this week's NFL games (ESPN scoreboard: kickoff, quarter/clock, score; Sleeper schedule as backup)
 js/myteam.js          logic: My Team (lineup, matchup, guillotine status, flags, bench swap ideas)
-js/waivers.js         logic: Waiver Wire (free agents, trending adds, weak spots, upgrade stars, FAAB)
-js/trade.js           logic: Trade Analyzer (value = blended pts/g − best free agent at the position, × age × injury; settings per league)
+js/waivers.js         logic: teamStrengths (every team's rank at each position, shared with Trade) and Waiver Wire (free agents, trending adds, weak spots, upgrade stars, FAAB)
+js/trade.js           logic: Trade Analyzer (value = blended pts/g − best free agent at the position, × age × injury; settings per league; FantasyPros values + picks in dynasty) and Trade ideas (similar value; fair 1-/2-piece packages ranked by mutual need via teamNeeds; hot/cold tags)
 js/standings.js       logic: Standings (guillotine: survivors first) and Weekly Recap (top/low score, blowout, closest, player of the week, best bench, most left on bench) + chat text
 js/gameday.js         logic: Game Day tab (score card per league, every player you own once, grouped Playing now / Still to play / Done / Not playing)
 js/player.js          logic: player details panel (who owns him in each league, points, game, injury)
