@@ -32,4 +32,8 @@
 - Owner switched Pages to GitHub Actions; Publish site run succeeded.
 - Done polish 2 (opens instantly / offline): saved copies of all downloads; app draws saved data in ~0.15 s then updates live; works offline with a "📴 Offline" note; page files saved by a service worker (sw.js); refreshes by itself after 5+ min in the background; trade picks and recap week survive refreshes. Fixed a bug where the first-ever open also downloaded Sleeper's 15 MB player list.
 
-**Next:** owner tests; then polish 3 (game status on lineup + live scores).
+- Owner tested polish 2 on the phone: works.
+- Owner chose ESPN for game info (allowed site.api.espn.com).
+- Done polish 3: each player shows his game (vs/@ opponent, kickoff day/time; live quarter, clock, score, 🏈 possession, 🔴 red zone; final W/L score). Lineup check: problems whose game already started/ended are greyed with 🔒 ("too late to swap" / "his game is over"); bench suggestions only include players whose game hasn't started. Live scores refresh every minute on My Team while games are on (tested with a faked live game; also falls back to Sleeper's schedule if ESPN is down).
+
+**Next:** owner tests on game day; then polish 4 (Game Day tab: all my players from every league, live).

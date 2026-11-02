@@ -20,7 +20,8 @@ function playerRow(r) {
   return '<div class="row' + (worst ? ' flag-' + worst : '') + '">' +
     '<div class="slot ' + esc(slotClass) + '">' + esc(r.label || r.slot) + '</div>' +
     '<div>' + (p
-      ? '<div class="pname">' + esc(p.name) + tags + '</div><div class="pmeta">' + esc(p.pos) + ' · ' + esc(p.team || 'no team') + (p.injury ? ' · ' + esc(p.injury) : '') + '</div>'
+      ? '<div class="pname">' + esc(p.name) + tags + '</div><div class="pmeta">' + esc(p.pos) + ' · ' + esc(p.team || 'no team') + (p.injury ? ' · ' + esc(p.injury) : '') + '</div>' +
+        (r.game ? '<div class="gline ' + r.game.state + '">' + (r.game.state === 'in' ? '🟢 ' : r.game.state === 'post' ? '' : '🕐 ') + esc(gameText(r.game)) + '</div>' : '')
       : '<div class="pname">Empty' + tags + '</div><div class="pmeta">Nobody in this spot</div>') +
     '</div>' +
     '<div class="ppts">' + (p ? fmtPts(r.pts) : '') + '</div>' +
@@ -72,11 +73,12 @@ function renderMyTeam(t, league) {
     html += '<div class="all-good">✓ No empty, injured or bye-week starters.</div>';
   } else {
     for (const a of t.alerts) {
-      html += '<div class="alert ' + a.level + '">' + (a.level === 'bad' ? '⛔ ' : '⚠️ ') + esc(a.text) +
+      html += '<div class="alert ' + a.level + '">' + (a.level === 'bad' ? '⛔ ' : a.level === 'locked' ? '🔒 ' : '⚠️ ') + esc(a.text) +
         (a.swaps.length ? '<div class="swap">Bench option' + (a.swaps.length > 1 ? 's' : '') + ': ' + esc(a.swaps.join(', ')) + '</div>' : '') +
       '</div>';
     }
   }
+  if (t.liveNote) html += '<div class="pmeta small" style="margin-top:6px">' + esc(t.liveNote) + '</div>';
   if (!t.byesKnown) html += '<div class="pmeta small" style="margin-top:6px">Bye weeks unavailable right now (couldn\'t load the NFL schedule).</div>';
   html += '</div>';
 

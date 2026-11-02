@@ -22,14 +22,14 @@ function isGuillotine(league) {
 }
 
 // Problems with one player this week: [{ level: 'warn'|'bad', text }]
-function playerFlags(player, byes, scoredAlready) {
+// gameOver = his game is finished (or he already scored), so a "Questionable" no longer matters.
+function playerFlags(player, byes, gameOver) {
   const flags = [];
   if (!player) return flags;
   if (byes && player.team && byes.has(player.team)) flags.push({ level: 'bad', tag: 'BYE', text: 'on bye' });
   if (!player.team) flags.push({ level: 'bad', tag: 'FA', text: 'not on an NFL team' });
   const inj = CONFIG.injuries[player.injury];
-  // If he already scored points this week, his game is played: a "Questionable" no longer matters.
-  if (inj && !(scoredAlready && inj.level === 'warn')) {
+  if (inj && !(gameOver && inj.level === 'warn')) {
     flags.push({ level: inj.level, tag: inj.tag, text: player.injury === 'Questionable' ? 'questionable' : player.injury });
   }
   return flags;
@@ -41,7 +41,7 @@ function canPlay(slot, player) {
 }
 
 function analyzeMyTeam(ctx) {
-  const { league, rosters, users, matchups, players, week, userId, byes } = ctx;
+  const { league, rosters, users, matchups, players, week, userId, byes, games } = ctx;
   const mine = rosters.find(r => isMine(r, userId));
   if (!mine) return { notOnLeague: true };
 
@@ -58,7 +58,11 @@ function analyzeMyTeam(ctx) {
   const row = (id, slot) => {
     const p = lookup(id);
     const scored = pts[id];
-    return { id, slot, label: CONFIG.slotLabels[slot] || slot, player: p, pts: scored, flags: playerFlags(p, byes, scored > 0) };
+    const game = gameFor(games, p);
+    // Locked = his game has started, so Sleeper won't let you move him.
+    const locked = !!game && game.state !== 'pre';
+    const gameOver = (game && game.state === 'post') || scored > 0;
+    return { id, slot, label: CONFIG.slotLabels[slot] || slot, player: p, pts: scored, game, locked, flags: playerFlags(p, byes, gameOver) };
   };
 
   const starters = slots.map((slot, i) => {
@@ -70,22 +74,26 @@ function analyzeMyTeam(ctx) {
   const bench = benchIds.map(id => row(id, 'BN'));
   const benchSorted = bench.slice().sort((a, b) => (a.player ? a.player.rank : 9e9) - (b.player ? b.player.rank : 9e9));
 
-  // For each problem starter, suggest bench players who could fill in (healthy, playing this week).
+  // For each problem starter you can still change, suggest bench players who could fill in
+  // (healthy, playing this week, and whose game hasn't started yet).
   for (const s of starters) {
-    if (!s.flags.length) continue;
+    if (!s.flags.length || s.locked) continue;
     s.swaps = benchSorted
-      .filter(b => canPlay(s.slot, b.player) && !b.flags.some(f => f.level === 'bad'))
+      .filter(b => canPlay(s.slot, b.player) && !b.flags.some(f => f.level === 'bad') && !b.locked)
       .slice(0, 2)
       .map(b => b.player.name);
   }
 
+  // Problems you can still fix come first; ones whose game already started are greyed (too late).
   const alerts = starters
     .filter(s => s.flags.length)
     .map(s => ({
-      level: s.flags.some(f => f.level === 'bad') ? 'bad' : 'warn',
-      text: s.label + ': ' + (s.player ? s.player.name + ' is ' : '') + s.flags.map(f => f.text).join(', '),
+      level: s.locked ? 'locked' : s.flags.some(f => f.level === 'bad') ? 'bad' : 'warn',
+      text: s.label + ': ' + (s.player ? s.player.name + ' is ' : '') + s.flags.map(f => f.text).join(', ') +
+        (s.locked ? (s.game.state === 'post' ? ' — his game is over' : ' — his game has started, too late to swap') : ''),
       swaps: s.swaps || [],
-    }));
+    }))
+    .sort((a, b) => (a.level === 'locked') - (b.level === 'locked'));
 
   const result = {
     week,

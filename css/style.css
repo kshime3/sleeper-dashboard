@@ -187,3 +187,9 @@ details[open] summary { margin-bottom: 4px; }
 .rbtns { display: flex; gap: 8px; margin-top: 10px; }
 .rbtns .btn { flex: 1; }
 .btn.alt { background: var(--card-2); color: var(--text); border: 1px solid var(--line); }
+
+/* Game status under each player */
+.gline { font-size: 12px; color: var(--muted); margin-top: 1px; }
+.gline.in { color: var(--good); font-weight: 600; }
+.gline.post { opacity: .75; }
+.alert.locked { background: var(--card-2); border-left: 4px solid var(--line); color: var(--muted); }

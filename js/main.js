@@ -52,10 +52,15 @@ async function showLeague() {
     const byes = byeTeams(app.schedule, week, app.players);
     const team = analyzeMyTeam({
       league, rosters: d.rosters, users: d.users, matchups: d.matchups,
-      players: app.players, week, userId: app.me.user.user_id, byes,
+      players: app.players, week, userId: app.me.user.user_id, byes, games: app.games,
     });
 
-    if (tab === 'team') { view.innerHTML = renderMyTeam(team, league); return; }
+    if (tab === 'team') {
+      if (app.games && app.games.anyLive) team.liveNote = '🟢 Games live — scores update every minute' + (app.liveAt ? ' (last ' + timeOf(app.liveAt) + ')' : '');
+      view.innerHTML = renderMyTeam(team, league);
+      scheduleLive();
+      return;
+    }
 
     if (tab === 'standings') {
       const st = standingsTable({ league, rosters: d.rosters, users: d.users, userId: app.me.user.user_id });
@@ -272,6 +277,7 @@ async function loadAll(forcePlayers, mode) {
   app.players = pl.players;
   app.playersSavedAt = pl.savedAt;
   app.schedule = await loadSchedule(me.season);
+  app.games = await loadGames(me.season, currentWeek());
   if (!me.leagues.length) throw new Error('No ' + me.season + ' leagues found for ' + CONFIG.username + '.');
   fillLeaguePicker();
   await showLeague();
@@ -298,11 +304,43 @@ async function reloadAll(forcePlayers) {
   }
 }
 
+// ---------- Live scores on game day ----------
+// While any NFL game is being played and you're looking at My Team, quietly re-download this
+// league's scores and the NFL scoreboard every minute (paused while the app is in the background).
+let liveTimer = null;
+function scheduleLive() {
+  clearTimeout(liveTimer);
+  if (app.games && app.games.anyLive) liveTimer = setTimeout(refreshLive, CONFIG.liveRefreshSeconds * 1000);
+}
+
+async function refreshLive() {
+  if (document.hidden || app.tab !== 'team' || NET.mode !== 'network') return scheduleLive();
+  const league = currentLeague(), d = app.leagueData[app.leagueId];
+  if (!league || !d) return scheduleLive();
+  try {
+    const week = currentWeek();
+    const [matchups, rosters, games] = await Promise.all([
+      getJSON(SLEEPER + '/league/' + league.league_id + '/matchups/' + week),
+      getJSON(SLEEPER + '/league/' + league.league_id + '/rosters'),
+      loadGames(app.me.season, week),
+    ]);
+    d.matchups = matchups; d.rosters = rosters; app.games = games;
+    if (d.recapMatchups) d.recapMatchups[week] = matchups;
+    d.waivers = null; // lineups may have changed
+    app.liveAt = Date.now();
+    if (app.tab === 'team' && app.leagueId === league.league_id) await showLeague();
+    else scheduleLive();
+  } catch (e) {
+    scheduleLive(); // try again next minute
+  }
+}
+
 // Coming back to the app after a while? Refresh automatically.
 let hiddenAt = 0;
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) { hiddenAt = Date.now(); return; }
   if (app.me && hiddenAt && Date.now() - hiddenAt > CONFIG.refreshAfterAwayMinutes * 60000) reloadAll(false);
+  else if (app.games && app.games.anyLive) { clearTimeout(liveTimer); refreshLive(); }
 });
 
 // Saves the page itself on the phone so it opens with no signal (sw.js).

@@ -20,7 +20,8 @@ async function savedCopy(url) {
   try { return await (await caches.open(DATA_CACHE)).match(url); } catch (e) { return null; }
 }
 
-async function cachedJSON(url, opts) {
+// extra.quiet: a failed download of this (e.g. ESPN) shouldn't make the whole app say "Offline".
+async function cachedJSON(url, opts, extra) {
   if (NET.mode === 'cache') {
     const hit = await savedCopy(url);
     if (!hit) throw new Error('No saved copy yet');
@@ -34,8 +35,7 @@ async function cachedJSON(url, opts) {
     // No signal: use the saved copy if there is one.
     const hit = await savedCopy(url);
     if (!hit) throw new Error('No internet connection, and nothing saved yet.');
-    NET.offline = true;
-    noteSavedAt(hit);
+    if (!(extra && extra.quiet)) { NET.offline = true; noteSavedAt(hit); }
     return hit.json();
   }
   if (!res.ok) throw new Error('Sleeper answered ' + res.status + ' for ' + url);

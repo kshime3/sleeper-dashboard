@@ -28,6 +28,9 @@ The owner is not very technical. Same working style as their Chained Dice projec
 
 - **Saved copies / offline:** every download goes through `cachedJSON` (js/sleeper.js), which also stores it in Cache Storage (`sd-data-v1`, not localStorage). On open, `reloadAll` draws once from saved copies (`NET.mode = 'cache'`, instant), then loads live and redraws; with no signal the saved copy is used and the status says Offline. Anything started in the cache pass must finish before the live pass (allSettled), or it will run in network mode.
 
+- **ESPN scoreboard** `site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?seasontype=2&week=<w>&dates=<season>` — unofficial, free, CORS allowed. Team code fix: ESPN WSH = Sleeper WAS. ESPN returns 403 to headless browsers: Playwright tests must set a phone userAgent AND `extraHTTPHeaders: {'sec-ch-ua': '"Chromium";v="140", "Google Chrome";v="140"'}`. Failures are quiet (don't mark the app Offline).
+- **Live scores:** while any game is live and My Team is open, `refreshLive` (main.js) re-downloads this league's matchups/rosters + the scoreboard every `CONFIG.liveRefreshSeconds`; paused in the background.
+
 ## Leagues (2026)
 
 MFFL (keeper: one keeper, costs a 6th-round pick each year), 🪓 Guillotine MFFL (guillotine: lowest score each week is eliminated; owner already eliminated), LocusLeague (redraft), MFFL Dynasty (dynasty). Notes in `CONFIG.leagueNotes`.
@@ -47,6 +50,7 @@ img/icon.svg          the icon; icon-*.png are renders of it
 js/config.js          ALL settings (username, cache times, league notes, lineup slots, injury tags)
 js/sleeper.js         logic: Sleeper API calls, saved player list (refreshed at most daily), schedule/byes
 js/stats.js           logic: season/weekly stats and league-scored fantasy points
+js/games.js           logic: this week's NFL games (ESPN scoreboard: kickoff, quarter/clock, score; Sleeper schedule as backup)
 js/myteam.js          logic: My Team (lineup, matchup, guillotine status, flags, bench swap ideas)
 js/waivers.js         logic: Waiver Wire (free agents, trending adds, weak spots, upgrade stars, FAAB)
 js/trade.js           logic: Trade Analyzer (value = blended pts/g − best free agent at the position, × age × injury; settings per league)
