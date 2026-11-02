@@ -249,3 +249,7 @@ body.sheet-open { overflow: hidden; }
 .ttag { display: inline-block; font-size: 10px; font-weight: 700; border-radius: 5px; padding: 1px 5px; margin-left: 4px; vertical-align: 1px; background: var(--card-2); }
 .ttag.hot, .ttag.up { color: #ff8a3d; }
 .ttag.cold, .ttag.down { color: #5aa9ff; }
+.ifilters { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 2px 0 8px; }
+.ifilters.three { grid-template-columns: 1fr 1fr 1fr; }
+.ifilter span { display: block; font-size: 11px; color: var(--muted); margin-bottom: 2px; }
+.ifilter select { padding: 7px 8px; font-size: 14px; }

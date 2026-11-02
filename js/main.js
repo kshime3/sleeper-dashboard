@@ -5,6 +5,7 @@ const app = {
   leagueId: null,
   tab: ['team', 'gameday', 'waivers', 'trade', 'standings'].includes(Store.get('sd_tab')) ? Store.get('sd_tab') : 'team', // reopen on your last tab
   tradePos: 'ALL',
+  ideaFilter: Object.assign({ size: 'any', pos: 'ANY', picks: 'any' }, Store.get('sd_idea_filter') || {}),
   uiKeep: {},          // league_id -> on-screen choices kept across refreshes
   loadedAt: 0,
   fp: null,            // FantasyPros dynasty values (data/dynasty-values.json)
@@ -135,6 +136,14 @@ function tradeSettingsFor(league) {
   return Object.assign(defaultTradeSettings(league), Store.get('sd_trade_' + league.league_id) || {});
 }
 
+// The saved idea filters, minus any that don't apply in this league (no picks, or a position it doesn't use).
+function ideaFilterFor(league, hasPicks) {
+  const f = Object.assign({}, app.ideaFilter);
+  if (!hasPicks) f.picks = 'any';
+  if (f.pos !== 'ANY' && !leaguePositions(league).includes(f.pos)) f.pos = 'ANY';
+  return f;
+}
+
 function buildTrade(league, d) {
   const userId = app.me.user.user_id;
   const mine = d.rosters.find(r => isMine(r, userId));
@@ -159,7 +168,7 @@ function buildTrade(league, d) {
   cmp.fp = usesFP(league, settings, app.fp) ? app.fp : null;
   // Trade ideas for the players you picked to give (all teams, not just the one selected above).
   const ideas = d.trade.give.length ? tradeIdeas({
-    values, mine, giveIds: d.trade.give,
+    values, mine, giveIds: d.trade.give, filter: ideaFilterFor(league, Object.keys(picks).length > 0),
     needs: teamNeeds(league, d.rosters, app.players, d.points),
     others: others.map(o => ({ roster_id: o.roster_id, name: o.name, ids: o.roster.players.concat(picksOf(o.roster_id)) })),
   }) : null;
@@ -168,7 +177,7 @@ function buildTrade(league, d) {
     hasTeam, settings, values, state: d.trade, pos: app.tradePos, positions: leaguePositions(league), opponents: others, oppName: opp.name,
     myIds: mine.players.concat(picksOf(mine.roster_id)), oppIds: opp.roster.players.concat(picksOf(opp.roster_id)),
     hasPicks: Object.keys(picks).length > 0,
-    cmp, ideas, fpAvailable: !!app.fp && leagueFormat(league) === 'dynasty',
+    cmp, ideas, ideaFilter: ideaFilterFor(league, Object.keys(picks).length > 0), fpAvailable: !!app.fp && leagueFormat(league) === 'dynasty',
   };
 }
 
@@ -239,6 +248,15 @@ $('#view').addEventListener('click', e => {
       .then(() => { msg.textContent = '✓ Copied! Open your league chat in Sleeper and paste.'; })
       .catch(() => { msg.textContent = 'Couldn\'t copy automatically — open "Preview chat text", press and hold the text, and copy it.'; });
   }
+});
+
+// Trade idea filters (pieces / position / picks)
+$('#view').addEventListener('change', e => {
+  const key = e.target.dataset && e.target.dataset.ifilter;
+  if (!key) return;
+  app.ideaFilter[key] = e.target.value;
+  Store.set('sd_idea_filter', app.ideaFilter);
+  $('#trade-dyn').innerHTML = renderTradeDynamic(buildTrade(currentLeague(), app.leagueData[app.leagueId]));
 });
 
 // Changing the trade partner

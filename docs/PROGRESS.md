@@ -44,4 +44,7 @@
 - Owner's next two plans: 1) trade suggestions, 2) add the owner's two ESPN leagues (waiting on: public or private, league IDs, which tabs).
 - Done plan 1: **Trade ideas** on the Trade tab. Pick your player(s) to give → 💡 card: up to 6 fair ideas (1- or 2-piece packages within 12%, no filler pieces) from any team, ranked by mutual need (fills your bottom-half position, ideally where they're top-third deep; gives them a position they're weak at; buy-low/sell-high bonus), each with reasons and "Try it" (loads it into the trade check, switching partner). Plus "Players with similar value" (±15%, ⭐ if it fills a weak spot). Hot/cold tags (last 3 weeks ≥30% and ≥3 pts/g above/below season) and, in dynasty, FantasyPros ↑/↓ (±10 this month). Settings in CONFIG.trade.ideas.
 
-**Next:** owner tests trade ideas; then plan 2 (ESPN leagues) once the owner answers the ESPN questions.
+- Added **trade idea filters** (owner asked): Pieces (any / 1 only / 2 only), Position (ideas that include that position), Picks (dynasty only: any / no picks / picks only). Applied before choosing the top ideas; remembered (sd_idea_filter); picks/position filters ignored in leagues where they don't apply. Traded picks in ideas show whose they were.
+- ESPN: owner's two ESPN leagues are **private** (needs espn_s2/SWID cookies → relay or hourly GitHub fetch; owner to follow up with league IDs later).
+
+**Next:** owner tests idea filters; ESPN leagues when the owner follows up.

@@ -258,15 +258,31 @@ function pickList(title, ids, values, picked, side, pos) {
   }).join('') + '</div>';
 }
 
-function ideasCard(ideas) {
+function ideaFilters(t) {
+  const f = t.ideaFilter;
+  const sel = (key, label, opts) => '<label class="ifilter"><span>' + label + '</span><select data-ifilter="' + key + '">' +
+    opts.map(([v, txt]) => '<option value="' + v + '"' + (f[key] === v ? ' selected' : '') + '>' + txt + '</option>').join('') + '</select></label>';
+  return '<div class="ifilters' + (t.hasPicks ? ' three' : '') + '">' +
+    sel('size', 'Pieces', [['any', 'Any'], ['1', '1 only'], ['2', '2 only']]) +
+    sel('pos', 'Position', [['ANY', 'Any']].concat(t.positions.map(p => [p, p]))) +
+    (t.hasPicks ? sel('picks', 'Picks', [['any', 'Any'], ['none', 'No picks'], ['only', 'Picks only']]) : '') +
+  '</div>';
+}
+
+function ideasCard(ideas, t) {
   if (!ideas) {
     return '<div class="card ideas"><h2>💡 Trade ideas</h2><div class="pmeta">Tap one or more of <b>your</b> players below to see players worth about the same, and fair trades that help both teams.</div></div>';
   }
   const val = b => fmtValue(b);
-  const who = b => (b.isPick ? '' : '<span class="slot inline ' + esc(b.player.pos) + '">' + esc(b.player.pos) + '</span> ') + esc(b.player.name);
-  let html = '<div class="card ideas"><h2>💡 Trade ideas <span class="pmeta">· you give ' + ideas.V.toFixed(ideas.V % 1 ? 1 : 0) + ' in value</span></h2>';
+  const who = b => b.isPick
+    ? '<span class="slot inline PICK">PICK</span> ' + esc(b.player.name) + (b.from ? ' <span class="pmeta">(' + esc(b.from) + '\'s)</span>' : '')
+    : '<span class="slot inline ' + esc(b.player.pos) + '">' + esc(b.player.pos) + '</span> ' + esc(b.player.name);
+  let html = '<div class="card ideas"><h2>💡 Trade ideas <span class="pmeta">· you give ' + ideas.V.toFixed(ideas.V % 1 ? 1 : 0) + ' in value</span></h2>' + ideaFilters(t);
+  const filtered = t.ideaFilter.size !== 'any' || t.ideaFilter.pos !== 'ANY' || (t.hasPicks && t.ideaFilter.picks !== 'any');
   if (!ideas.ideas.length) {
-    html += '<div class="pmeta">No fair 1- or 2-piece packages found on other teams for this. Try adding or swapping a player.</div>';
+    html += '<div class="pmeta">' + (filtered
+      ? 'No fair trades match these filters. Try loosening them, or add/swap a player you\'re giving.'
+      : 'No fair 1- or 2-piece packages found on other teams for this. Try adding or swapping a player.') + '</div>';
   }
   ideas.ideas.forEach((idea, i) => {
     html += '<div class="idea"><div class="idea-top"><div><div class="pmeta">From ' + esc(idea.team.name) + '</div>' +
@@ -292,7 +308,7 @@ function renderTradeDynamic(t) {
   const positions = t.positions.concat(t.hasPicks ? ['PICK'] : []);
   const pos = ['ALL'].concat(positions).includes(t.pos) ? t.pos : 'ALL';
   const chip = (val, label) => '<button class="fchip' + (pos === val ? ' on' : '') + '" data-tpos="' + val + '">' + label + '</button>';
-  return tradeResult(t.cmp) + ideasCard(t.ideas) +
+  return tradeResult(t.cmp) + ideasCard(t.ideas, t) +
     '<div class="filters">' + chip('ALL', 'All') + positions.map(p => chip(p, p === 'PICK' ? 'Picks' : p)).join('') + '</div>' +
     pickList('Your players', t.myIds, t.values, t.state.give, 'give', pos) +
     pickList(t.oppName + '\'s players', t.oppIds, t.values, t.state.get, 'get', pos);

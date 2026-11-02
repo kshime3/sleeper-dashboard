@@ -261,8 +261,19 @@ function teamNeeds(league, rosters, players, points) {
 
 // Ideas for what you could get for the players you've picked to give.
 // ctx: { values, mine, others: [{ roster_id, name, ids }], giveIds, needs }
+// ctx.filter: { size: 'any' | '1' | '2', pos: 'ANY' | 'QB' | ..., picks: 'any' | 'none' | 'only' }
+function ideaAllowed(pkg, filter) {
+  const f = filter || {};
+  if (f.size === '1' && pkg.length !== 1) return false;
+  if (f.size === '2' && pkg.length !== 2) return false;
+  if (f.picks === 'none' && pkg.some(b => b.isPick)) return false;
+  if (f.picks === 'only' && !pkg.every(b => b.isPick)) return false;
+  if (f.pos && f.pos !== 'ANY' && !pkg.some(b => !b.isPick && b.player.positions.includes(f.pos))) return false;
+  return true;
+}
+
 function tradeIdeas(ctx) {
-  const { values, mine, others, giveIds, needs } = ctx;
+  const { values, mine, others, giveIds, needs, filter } = ctx;
   const cfg = CONFIG.trade.ideas;
   const give = giveIds.map(id => values[id]).filter(Boolean);
   const V = give.reduce((a, b) => a + b.value, 0);
@@ -276,7 +287,7 @@ function tradeIdeas(ctx) {
   for (const t of others) {
     for (const id of t.ids) {
       const b = values[id];
-      if (!b || b.value <= 0 || off(b.value) > cfg.similarRange) continue;
+      if (!b || b.value <= 0 || off(b.value) > cfg.similarRange || !ideaAllowed([b], filter)) continue;
       similar.push({ team: t, b, off: off(b.value), fills: !b.isPick && myNeeds.weak[b.player.pos] });
     }
   }
@@ -291,6 +302,7 @@ function tradeIdeas(ctx) {
     const packages = pool.map(b => [b]);
     for (let i = 0; i < pool.length; i++) for (let j = i + 1; j < pool.length; j++) packages.push([pool[i], pool[j]]);
     for (const pkg of packages) {
+      if (!ideaAllowed(pkg, filter)) continue;
       const value = pkg.reduce((a, b) => a + b.value, 0);
       const o = off(value);
       if (o > cfg.fairRange) continue;
