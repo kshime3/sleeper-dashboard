@@ -38,4 +38,7 @@
 
 - Done polish 4: **Game Day tab** (📺, 2nd tab; league picker hidden there). Score card per league (your score, opponent's, how many players each side still has to play; guillotine shows rank if alive). Every player you own listed once, grouped 🟢 Playing now / 🕐 Still to play / ✅ Done / 😴 Not playing (bench mode), with live game line and a tag per league (start/bench, points if he's in 2+ leagues). Starters / Starters + bench switch. Live updates every minute for all leagues. Tested with a faked live game.
 
-**Next:** owner tests; then polish 5 (player details on tap).
+- Done polish 5: **player details on tap** (My Team, Game Day, Waivers; Trade keeps tap-to-pick). Panel slides up: position, depth chart spot, team, number, age, years; injury status + body part + notes; this week's game (live); points in that league's scoring (season, per game, last 3 weeks); and in each of your leagues whether he's your starter/bench/IR, on another team (whose), or a free agent. Closes with ✕, tapping outside, or the phone's Back button. Player list now keeps injury details, depth chart and jersey number (saved list renamed sd_players_v3).
+- All 5 chosen polish items are done.
+
+**Next:** owner tests; more ideas from the owner.

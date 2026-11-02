@@ -211,3 +211,28 @@ details[open] summary { margin-bottom: 4px; }
 .tabs { grid-template-columns: repeat(5, 1fr); }
 .tabs button { font-size: 11px; }
 body.no-picker #league-picker { display: none; }
+
+/* Player details panel (slides up from the bottom) */
+.sheet { position: fixed; inset: 0; z-index: 20; }
+.sheet.hidden { display: none; }
+.sheet-bg { position: absolute; inset: 0; background: rgba(0, 0, 0, .55); }
+.sheet-body {
+  position: absolute; left: 0; right: 0; bottom: 0; max-height: 85vh; overflow-y: auto;
+  background: var(--card); border-top: 1px solid var(--line); border-radius: 18px 18px 0 0;
+  padding: 14px 16px calc(18px + env(safe-area-inset-bottom)); max-width: 640px; margin: 0 auto;
+  animation: slideup .18s ease-out;
+}
+@keyframes slideup { from { transform: translateY(40px); opacity: .5; } to { transform: none; opacity: 1; } }
+.sheet-head { display: grid; grid-template-columns: 46px 1fr auto; gap: 10px; align-items: start; margin-bottom: 8px; }
+.sheet-name { font-size: 19px; font-weight: 700; overflow-wrap: anywhere; }
+.sheet-h { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 14px 0 6px; }
+.sheet-h .pmeta { text-transform: none; letter-spacing: 0; }
+.sheet-game { font-size: 15px; }
+.sheet-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(64px, 1fr)); gap: 6px; }
+.sheet-stats div { background: var(--card-2); border-radius: 10px; padding: 8px 4px; text-align: center; }
+.sheet-stats b { display: block; font-size: 17px; font-variant-numeric: tabular-nums; }
+.sheet-stats span { font-size: 11px; color: var(--muted); }
+.own { padding: 6px 0; border-top: 1px solid var(--line); font-size: 14px; }
+.own:first-of-type { border-top: 0; }
+[data-pid] { cursor: pointer; }
+body.sheet-open { overflow: hidden; }

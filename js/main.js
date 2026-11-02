@@ -343,6 +343,58 @@ $('#view').addEventListener('click', e => {
   showLeague();
 });
 
+// ---------- Player details panel ----------
+// Tap a player on My Team, Game Day or Waivers. (On Trade, a tap picks players for the trade instead.)
+let sheetPid = null;
+async function openPlayer(id) {
+  sheetPid = id;
+  const sheet = $('#sheet'), body = $('#sheet-body');
+  sheet.classList.remove('hidden');
+  document.body.classList.add('sheet-open');
+  if (!history.state || !history.state.sheet) history.pushState({ sheet: true }, ''); // phone Back button closes it
+  const draw = (points, pointsLeague) => {
+    if (sheetPid !== id) return;
+    body.innerHTML = renderPlayerSheet(playerDetails({
+      id, players: app.players, games: app.games, leagues: app.me.leagues, leagueData: app.leagueData,
+      userId: app.me.user.user_id, points, pointsLeague,
+    }));
+  };
+  draw(null, null);
+  try {
+    const week = currentWeek();
+    await loadAllLeagues(week); // so "Your leagues" covers every league
+    // Points use the league you're looking at (on Game Day: the first league where he's yours).
+    let league = currentLeague();
+    if (app.tab === 'gameday') {
+      league = app.me.leagues.find(l => {
+        const d = app.leagueData[l.league_id], r = d && d.rosters.find(x => isMine(x, app.me.user.user_id));
+        return r && (r.players || []).includes(id);
+      }) || league;
+    }
+    const points = await loadPoints(league, app.me.season, week, app.players);
+    draw(points, league);
+  } catch (e) {
+    draw(null, null);
+  }
+}
+
+function closePlayer(fromBack) {
+  if ($('#sheet').classList.contains('hidden')) return;
+  $('#sheet').classList.add('hidden');
+  document.body.classList.remove('sheet-open');
+  sheetPid = null;
+  if (!fromBack && history.state && history.state.sheet) history.back();
+}
+
+$('#view').addEventListener('click', e => {
+  if (app.tab === 'trade') return;
+  const row = e.target.closest('[data-pid]');
+  if (row && app.players[row.dataset.pid]) openPlayer(row.dataset.pid);
+});
+$('#sheet').addEventListener('click', e => { if (e.target.closest('[data-sheet-close]')) closePlayer(false); });
+window.addEventListener('popstate', () => closePlayer(true));
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closePlayer(false); });
+
 // ---------- Live scores on game day ----------
 // While any NFL game is being played and you're looking at My Team, quietly re-download this
 // league's scores and the NFL scoreboard every minute (paused while the app is in the background).

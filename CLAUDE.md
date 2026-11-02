@@ -14,7 +14,7 @@ The owner is not very technical. Same working style as their Chained Dice projec
 - Every setting you might tune lives in `js/config.js`.
 - Explain things in plain language. Ask before big decisions.
 - **Cache-busting:** index.html loads every CSS/JS file with `?v=YYYYMMDDx`. When changing css/ or js/, bump that tag everywhere in index.html (one sed).
-- GitHub Pages shares one web address (kshime3.github.io) with Chained Dice, so phone storage is shared too: keep saved data small (the trimmed player list is ~160 KB) and prefix keys with `sd_`.
+- GitHub Pages shares one web address (kshime3.github.io) with Chained Dice, so phone storage is shared too: keep saved data small (the trimmed player list is ~200 KB) and prefix keys with `sd_`.
 
 ## Data sources
 
@@ -56,6 +56,7 @@ js/waivers.js         logic: Waiver Wire (free agents, trending adds, weak spots
 js/trade.js           logic: Trade Analyzer (value = blended pts/g − best free agent at the position, × age × injury; settings per league)
 js/standings.js       logic: Standings (guillotine: survivors first) and Weekly Recap (top/low score, blowout, closest, player of the week, best bench, most left on bench) + chat text
 js/gameday.js         logic: Game Day tab (score card per league, every player you own once, grouped Playing now / Still to play / Done / Not playing)
+js/player.js          logic: player details panel (who owns him in each league, points, game, injury)
 js/ui.js              display: draws each tab
 js/main.js            wires it together: two-pass loading (saved copies, then live), league picker, tabs, refresh on return
 sw.js                 service worker: saves the page's own files so it opens offline

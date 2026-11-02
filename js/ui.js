@@ -17,7 +17,7 @@ function playerRow(r) {
   const worst = r.flags.some(f => f.level === 'bad') ? 'bad' : (r.flags.length ? 'warn' : '');
   const tags = r.flags.map(f => '<span class="tag ' + f.level + '">' + esc(f.tag) + '</span>').join('');
   const slotClass = p && r.slot !== 'BN' && r.slot !== 'IR' && r.slot !== 'TAXI' ? r.slot : (p ? p.pos : '');
-  return '<div class="row' + (worst ? ' flag-' + worst : '') + '">' +
+  return '<div class="row' + (worst ? ' flag-' + worst : '') + '"' + (p && p.pos !== '?' ? ' data-pid="' + esc(p.id) + '"' : '') + '>' +
     '<div class="slot ' + esc(slotClass) + '">' + esc(r.label || r.slot) + '</div>' +
     '<div>' + (p
       ? '<div class="pname">' + esc(p.name) + tags + '</div><div class="pmeta">' + esc(p.pos) + ' · ' + esc(p.team || 'no team') + (p.injury ? ' · ' + esc(p.injury) : '') + '</div>' +
@@ -157,7 +157,7 @@ function renderWaivers(w, opts) {
     const p = e.player;
     const worst = e.flags.some(f => f.level === 'bad') ? 'bad' : '';
     const tags = e.flags.map(f => '<span class="tag ' + f.level + '">' + esc(f.tag) + '</span>').join('');
-    html += '<div class="row wrow' + (e.fits.length ? ' fits' : '') + (worst ? ' flag-bad' : '') + '">' +
+    html += '<div class="row wrow' + (e.fits.length ? ' fits' : '') + (worst ? ' flag-bad' : '') + '" data-pid="' + esc(p.id) + '">' +
       '<div class="slot ' + esc(p.pos) + '">' + esc(p.pos) + '</div>' +
       '<div><div class="pname">' + (e.fits.length ? '⭐ ' : '') + esc(p.name) + tags + '</div>' +
         '<div class="pmeta">' + esc(p.team) + ' · ' + (e.line.games ? e.line.ppg.toFixed(1) + ' pts/g in ' + e.line.games + ' g' : 'no games yet') +
@@ -376,7 +376,7 @@ function renderGameDay(gd, opts, liveNote) {
       const chips = e.leagues.map(l => '<span class="lchip' + (l.starting ? ' start' : '') + '">' + esc(l.short) +
         (l.starting ? '' : ' · bench') + (e.leagues.length > 1 && l.pts != null && (!e.game || e.game.state !== 'pre') ? ' <b>' + Number(l.pts).toFixed(1) + '</b>' : '') + '</span>').join('');
       const best = Math.max(...e.leagues.map(l => l.pts || 0));
-      html += '<div class="row gdrow' + (e.startsSomewhere ? '' : ' benchonly') + '">' +
+      html += '<div class="row gdrow' + (e.startsSomewhere ? '' : ' benchonly') + '" data-pid="' + esc(p.id) + '">' +
         '<div class="slot ' + esc(p.pos) + '">' + esc(p.pos) + '</div>' +
         '<div><div class="pname">' + esc(p.name) + tags + '</div>' +
           (e.game ? '<div class="gline ' + e.game.state + '">' + esc(p.team) + ' ' + esc(gameText(e.game)) + '</div>' : '<div class="gline">' + esc(p.team || 'no team') + '</div>') +
@@ -385,6 +385,49 @@ function renderGameDay(gd, opts, liveNote) {
       '</div>';
     }
     html += '</div>';
+  }
+  return html;
+}
+
+// ---------- Player details panel ----------
+function renderPlayerSheet(pd) {
+  if (!pd) return '<div class="pmeta">Player not found.</div>';
+  const p = pd.player;
+  const tags = playerFlags(p, null, false).map(f => '<span class="tag ' + f.level + '">' + esc(f.tag) + '</span>').join('');
+  const facts = [p.pos + (p.depth ? ' (' + p.depth + ' on the depth chart)' : ''), p.team || 'No NFL team',
+    p.number ? '#' + p.number : '', p.age ? 'Age ' + p.age : '', p.exp != null ? (p.exp === 0 ? 'Rookie' : p.exp + (p.exp === 1 ? ' year' : ' years') + ' in the NFL') : '']
+    .filter(Boolean).map(esc).join(' · ');
+  let html = '<div class="sheet-head"><div class="slot ' + esc(p.pos) + '">' + esc(p.pos) + '</div>' +
+    '<div><div class="sheet-name">' + esc(p.name) + tags + '</div><div class="pmeta">' + facts + '</div></div>' +
+    '<button class="icon-btn" data-sheet-close aria-label="Close">✕</button></div>';
+
+  if (p.injury) {
+    html += '<div class="alert ' + ((CONFIG.injuries[p.injury] || {}).level || 'warn') + '"><b>' + esc(p.injury) + '</b>' +
+      (p.bodyPart ? ' — ' + esc(p.bodyPart) : '') + (p.injuryNotes ? '<div class="small">' + esc(p.injuryNotes) + '</div>' : '') + '</div>';
+  }
+
+  html += '<h3 class="sheet-h">This week</h3><div class="' + (pd.game ? 'gline ' + pd.game.state : 'pmeta') + ' sheet-game">' +
+    (pd.game ? (pd.game.state === 'in' ? '🟢 ' : pd.game.state === 'pre' ? '🕐 ' : '') + esc(p.team + ' ' + gameText(pd.game)) : 'No game this week (bye)') + '</div>';
+
+  if (pd.stats) {
+    const s = pd.stats;
+    html += '<h3 class="sheet-h">Points <span class="pmeta">(' + esc(s.leagueName) + ' scoring)</span></h3>' +
+      '<div class="sheet-stats">' +
+        '<div><b>' + s.season.total.toFixed(1) + '</b><span>season</span></div>' +
+        '<div><b>' + s.season.ppg.toFixed(1) + '</b><span>per game (' + s.season.games + ' g)</span></div>' +
+        s.recent.map(r => '<div><b>' + (r.pts == null ? '–' : r.pts.toFixed(1)) + '</b><span>week ' + r.week + '</span></div>').join('') +
+      '</div>';
+  }
+
+  html += '<h3 class="sheet-h">Your leagues</h3>';
+  for (const o of pd.ownership) {
+    const what = o.status === 'starting' ? '<span class="lead">Your starter</span>'
+      : o.status === 'bench' ? 'On your bench'
+      : o.status === 'ir' ? 'On your IR'
+      : o.status === 'free' ? '<span class="lead">Free agent — you could add him</span>'
+      : 'On ' + esc(o.ownerName);
+    html += '<div class="own"><span class="lchip' + (o.status === 'starting' || o.status === 'bench' || o.status === 'ir' ? ' start' : '') + '">' + esc(o.short) + '</span> ' + what +
+      (o.pts != null && pd.game && pd.game.state !== 'pre' ? ' <span class="pmeta">· ' + Number(o.pts).toFixed(1) + ' pts this week</span>' : '') + '</div>';
   }
   return html;
 }

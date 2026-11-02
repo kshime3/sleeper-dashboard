@@ -61,7 +61,7 @@ function isFresh(saved, hours) {
 }
 
 // ---------- Player list (big: ~15 MB from Sleeper, ~170 KB after trimming) ----------
-const PLAYER_KEY = 'sd_players_v2'; // v2: includes two-way players
+const PLAYER_KEY = 'sd_players_v3'; // v3: adds injury details, depth chart, jersey number
 const FANTASY_POSITIONS = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF'];
 
 // Keep only fantasy-relevant players and only the fields we use, so it fits in phone storage.
@@ -79,7 +79,11 @@ function trimPlayers(raw) {
       : (p.full_name || ((p.first_name || '') + ' ' + (p.last_name || '')).trim());
     const fpos = (p.fantasy_positions || []).filter(x => FANTASY_POSITIONS.includes(x));
     const fp = fpos.length > 1 ? fpos : 0;
-    out[id] = [name, pos, p.team || '', p.injury_status || '', p.age || 0, p.years_exp || 0, p.search_rank || 9999999, fp];
+    const depth = p.depth_chart_position && p.depth_chart_order ? p.depth_chart_position + p.depth_chart_order : '';
+    // Injury details only for players with an injury status (keeps the saved list small).
+    const hurt = !!p.injury_status;
+    out[id] = [name, pos, p.team || '', p.injury_status || '', p.age || 0, p.years_exp || 0, p.search_rank || 9999999, fp,
+      hurt ? (p.injury_body_part || '') : '', hurt ? (p.injury_notes || '') : '', depth, p.number || ''];
   }
   return out;
 }
@@ -87,15 +91,15 @@ function trimPlayers(raw) {
 function expandPlayers(trimmed) {
   const players = {};
   for (const id in trimmed) {
-    const [name, pos, team, injury, age, exp, rank, fp] = trimmed[id];
-    players[id] = { id, name, pos, team, injury, age, exp, rank, positions: fp || [pos] };
+    const [name, pos, team, injury, age, exp, rank, fp, bodyPart, injuryNotes, depth, number] = trimmed[id];
+    players[id] = { id, name, pos, team, injury, age, exp, rank, positions: fp || [pos], bodyPart, injuryNotes, depth, number };
   }
   return players;
 }
 
 async function loadPlayers(force) {
   const mode = NET.mode;
-  try { localStorage.removeItem('sd_players_v1'); } catch (e) { /* old saved copy, no longer used */ }
+  try { localStorage.removeItem('sd_players_v1'); localStorage.removeItem('sd_players_v2'); } catch (e) { /* old saved copies, no longer used */ }
   const saved = Store.get(PLAYER_KEY);
   // The small copy on our own site is rebuilt every hour, so it's worth checking more often.
   const hours = saved && saved.source === 'site' ? CONFIG.playerSiteCacheHours : CONFIG.playerCacheHours;

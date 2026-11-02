@@ -4,11 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Sleeper Dashboard</title>
-  <link rel="icon" type="image/svg+xml" href="img/icon.svg?v=20261102o">
-  <link rel="apple-touch-icon" href="img/icon-180.png?v=20261102o">
+  <link rel="icon" type="image/svg+xml" href="img/icon.svg?v=20261102p">
+  <link rel="apple-touch-icon" href="img/icon-180.png?v=20261102p">
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#101722">
-  <link rel="stylesheet" href="css/style.css?v=20261102o">
+  <link rel="stylesheet" href="css/style.css?v=20261102p">
 </head>
 <body>
   <header class="top">
@@ -25,6 +25,12 @@
 
   <footer id="status" class="status"></footer>
 
+  <!-- Player details panel (js/player.js + renderPlayerSheet in js/ui.js) -->
+  <div id="sheet" class="sheet hidden" role="dialog" aria-modal="true" aria-label="Player details">
+    <div class="sheet-bg" data-sheet-close></div>
+    <div class="sheet-body" id="sheet-body"></div>
+  </div>
+
   <nav class="tabs" aria-label="Sections">
     <button data-tab="team" class="active"><span>🏈</span>My Team</button>
     <button data-tab="gameday"><span>📺</span>Game Day</button>
@@ -33,16 +39,17 @@
     <button data-tab="standings"><span>🏆</span>Standings</button>
   </nav>
 
-  <script src="js/config.js?v=20261102o"></script>
-  <script src="js/sleeper.js?v=20261102o"></script>
-  <script src="js/stats.js?v=20261102o"></script>
-  <script src="js/games.js?v=20261102o"></script>
-  <script src="js/myteam.js?v=20261102o"></script>
-  <script src="js/waivers.js?v=20261102o"></script>
-  <script src="js/trade.js?v=20261102o"></script>
-  <script src="js/standings.js?v=20261102o"></script>
-  <script src="js/gameday.js?v=20261102o"></script>
-  <script src="js/ui.js?v=20261102o"></script>
-  <script src="js/main.js?v=20261102o"></script>
+  <script src="js/config.js?v=20261102p"></script>
+  <script src="js/sleeper.js?v=20261102p"></script>
+  <script src="js/stats.js?v=20261102p"></script>
+  <script src="js/games.js?v=20261102p"></script>
+  <script src="js/myteam.js?v=20261102p"></script>
+  <script src="js/waivers.js?v=20261102p"></script>
+  <script src="js/trade.js?v=20261102p"></script>
+  <script src="js/standings.js?v=20261102p"></script>
+  <script src="js/gameday.js?v=20261102p"></script>
+  <script src="js/player.js?v=20261102p"></script>
+  <script src="js/ui.js?v=20261102p"></script>
+  <script src="js/main.js?v=20261102p"></script>
 </body>
 </html>
