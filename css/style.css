@@ -165,3 +165,25 @@ details[open] summary { margin-bottom: 4px; }
 .toggle { display: flex; align-items: center; gap: 8px; font-weight: 600; margin: 10px 0 4px; }
 .toggle input { width: 20px; height: 20px; accent-color: var(--accent); }
 .slot.PICK { color: #e6c35c; }
+
+/* Standings & Recap */
+.stand { width: 100%; border-collapse: collapse; font-size: 14px; }
+.stand th { text-align: left; font-size: 11px; color: var(--muted); font-weight: 600; padding: 4px 4px 6px; text-transform: uppercase; }
+.stand td { padding: 7px 4px; border-top: 1px solid var(--line); vertical-align: top; }
+.stand td:first-child { width: 22px; color: var(--muted); }
+.stand .num, .stand th:nth-child(n+3) { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.stand .tname { font-weight: 600; overflow-wrap: break-word; word-break: break-word; }
+.stand tr.me td { background: rgba(25, 194, 181, .14); }
+.stand tr.me .tname { color: var(--accent); }
+.stand tr.out td { opacity: .5; }
+.stand tr.cutline td { border-bottom: 2px dashed var(--accent); }
+#recap-week { margin-bottom: 8px; }
+.ritem { display: grid; grid-template-columns: 28px 1fr; gap: 8px; padding: 8px 0; border-top: 1px solid var(--line); }
+.ritem:first-child { border-top: 0; }
+.ricon { font-size: 20px; line-height: 1.2; }
+.rtitle { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+.ptext summary { text-transform: none; letter-spacing: 0; margin-top: 8px; }
+.ptext pre { white-space: pre-wrap; font: 13px/1.4 ui-monospace, monospace; background: var(--card-2); padding: 10px; border-radius: 10px; }
+.rbtns { display: flex; gap: 8px; margin-top: 10px; }
+.rbtns .btn { flex: 1; }
+.btn.alt { background: var(--card-2); color: var(--text); border: 1px solid var(--line); }

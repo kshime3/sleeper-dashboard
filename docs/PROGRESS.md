@@ -23,4 +23,6 @@
 - Owner ran the Action by hand: green check.
 - Added **draft picks** to dynasty trades (FantasyPros pick values, superflex column): each team's picks for the next 3 seasons, with Sleeper's traded picks applied. Next year's picks use a slot projected from current standings (worst record = 1.01); later years use the round average; 2029 reuses 2028 values (est.). "Picks" filter chip.
 
-**Next:** Standings & Weekly Recap.
+- Built **Standings & Weekly Recap** (last of the 4 features): standings with W-L, PF, PA, streak, your team highlighted, dashed playoff cutoff line (guillotine: survivors ranked by points, chopped teams greyed). Recap for any week (defaults to last week; current week marked in progress): top/lowest score, biggest blowout, closest game, player of the week, best bench performance, most points left on the bench (guillotine: chopped team and closest call). Copy button (and Android Share button) produce plain text for the league chat. Tested in all 4 leagues, no errors.
+
+**Next:** owner tests on the phone. All four planned features are done; then polish / ideas from the owner.

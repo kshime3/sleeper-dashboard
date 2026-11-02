@@ -3,7 +3,7 @@
 function teamName(users, roster) {
   const u = users.find(x => x.user_id === roster.owner_id);
   if (!u) return 'Team ' + roster.roster_id;
-  return (u.metadata && u.metadata.team_name) || u.display_name || ('Team ' + roster.roster_id);
+  return ((u.metadata && u.metadata.team_name) || u.display_name || ('Team ' + roster.roster_id)).trim();
 }
 
 function recordOf(roster) {

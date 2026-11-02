@@ -286,3 +286,55 @@ function renderTrade(t) {
       '<button class="btn small-btn" data-treset="settings">Reset to defaults</button>' +
     '</details></div>';
 }
+
+// ---------- Standings & Weekly Recap ----------
+function renderStandings(st, recap, league, weeks, recapWeek, currentWk) {
+  let html = '<div class="card"><h2>' + (st.guillotine ? 'Survivors' : 'Standings') + '</h2>' +
+    '<table class="stand"><thead><tr><th>#</th><th>Team</th>' + (st.guillotine ? '' : '<th>W-L</th>') + '<th>PF</th>' + (st.guillotine ? '' : '<th>PA</th>') + '</tr></thead><tbody>';
+  st.rows.forEach((r, i) => {
+    const cut = st.guillotine ? (r.alive && st.rows[i + 1] && !st.rows[i + 1].alive) : (st.playoffTeams && i + 1 === st.playoffTeams);
+    html += '<tr class="' + (r.mine ? 'me ' : '') + (st.guillotine && !r.alive ? 'out ' : '') + (cut ? 'cutline' : '') + '">' +
+      '<td>' + (st.guillotine && !r.alive ? '🪓' : r.rank) + '</td>' +
+      '<td><div class="tname">' + esc(r.name) + '</div><div class="pmeta">' + esc(r.owner) + (r.streak && !st.guillotine ? ' · ' + esc(r.streak) : '') + '</div></td>' +
+      (st.guillotine ? '' : '<td class="num">' + esc(r.record) + '</td>') +
+      '<td class="num">' + r.pf.toFixed(1) + '</td>' +
+      (st.guillotine ? '' : '<td class="num">' + r.pa.toFixed(1) + '</td>') + '</tr>';
+  });
+  html += '</tbody></table>';
+  if (st.playoffTeams) html += '<div class="pmeta small" style="margin-top:6px">Line = playoff cutoff (top ' + st.playoffTeams + '). Ties broken by points for.</div>';
+  if (st.guillotine) html += '<div class="pmeta small" style="margin-top:6px">Survivors ranked by total points; 🪓 = eliminated.</div>';
+  html += '</div>';
+
+  // Weekly recap
+  html += '<div class="card"><h2>Weekly recap</h2>' +
+    '<select id="recap-week">' + weeks.map(w => '<option value="' + w + '"' + (w === recapWeek ? ' selected' : '') + '>Week ' + w + (w === currentWk ? ' (in progress)' : '') + '</option>').join('') + '</select>';
+  if (!recap) {
+    html += '<p class="muted center">Loading…</p>';
+  } else if (recap.empty) {
+    html += '<p class="pmeta">No games found for week ' + recap.week + '.</p>';
+  } else {
+    const f = n => Number(n).toFixed(2);
+    const item = (icon, title, body) => '<div class="ritem"><div class="ricon">' + icon + '</div><div><div class="rtitle">' + title + '</div><div>' + body + '</div></div></div>';
+    html += '<div class="recap">';
+    html += item('🔥', 'Top score', esc(recap.high.name) + ' — <b>' + f(recap.high.points) + '</b>');
+    if (recap.guillotine) {
+      html += item('🪓', 'Chopped', esc(recap.chopped.name) + ' — <b>' + f(recap.chopped.points) + '</b>');
+      if (recap.survivedBy) html += item('😅', 'Closest call', esc(recap.survivedBy.name) + ' survived by <b>' + f(recap.survivedBy.points - recap.chopped.points) + '</b>');
+    } else {
+      const game = g => esc(g.winner.name) + ' <b>' + f(g.winner.points) + '</b> – <b>' + f(g.loser.points) + '</b> ' + esc(g.loser.name);
+      if (recap.blowout) html += item('💥', 'Biggest blowout', game(recap.blowout) + ' <span class="pmeta">(by ' + f(recap.blowout.margin) + ')</span>');
+      if (recap.closest && recap.closest !== recap.blowout) html += item('😬', 'Closest game', game(recap.closest) + ' <span class="pmeta">(' + (recap.closest.tie ? 'tie' : 'by ' + f(recap.closest.margin)) + ')</span>');
+      html += item('🧊', 'Lowest score', esc(recap.low.name) + ' — <b>' + f(recap.low.points) + '</b>');
+    }
+    if (recap.topStarter) html += item('⭐', 'Player of the week', esc(recap.topStarter.name) + ' <span class="pmeta">(' + esc(recap.topStarter.team) + ')</span> — <b>' + f(recap.topStarter.pts) + '</b>');
+    if (recap.topBench) html += item('🪑', 'Best bench performance', esc(recap.topBench.name) + ' scored <b>' + f(recap.topBench.pts) + '</b> on ' + esc(recap.topBench.team) + '\'s bench');
+    if (recap.mostLeft) html += item('🤦', 'Most points left on the bench', esc(recap.mostLeft.team) + ' — <b>' + f(recap.mostLeft.pts) + '</b>');
+    html += '</div>';
+    if (recap.week === currentWk) html += '<div class="alert warn">⚠️ This week isn\'t finished yet — numbers may change.</div>';
+    html += '<details class="ptext"><summary>Preview chat text</summary><pre id="recap-text">' + esc(recapText(league, recap)) + '</pre></details>' +
+      '<div class="rbtns"><button class="btn" data-recap="copy">📋 Copy recap</button>' +
+      (navigator.share ? '<button class="btn alt" data-recap="share">📤 Share…</button>' : '') + '</div>' +
+      '<div id="recap-msg" class="pmeta small center"></div>';
+  }
+  return html + '</div>';
+}

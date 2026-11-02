@@ -29,11 +29,6 @@ async function showLeague() {
   const view = $('#view');
   if (!league) { view.innerHTML = renderError('No leagues found for ' + CONFIG.username + '.'); return; }
 
-  if (app.tab === 'standings') {
-    view.innerHTML = renderComingSoon('Standings & Recap');
-    return;
-  }
-
   const week = currentWeek();
   const tab = app.tab;
   const stillHere = () => app.leagueId === league.league_id && app.tab === tab; // you may switch while it loads
@@ -51,6 +46,24 @@ async function showLeague() {
     });
 
     if (tab === 'team') { view.innerHTML = renderMyTeam(team, league); return; }
+
+    if (tab === 'standings') {
+      const st = standingsTable({ league, rosters: d.rosters, users: d.users, userId: app.me.user.user_id });
+      const weeks = [];
+      for (let w = week; w >= 1; w--) weeks.push(w);
+      if (!d.recapWeek) d.recapWeek = week > 1 ? week - 1 : week; // last week by default
+      const rw = d.recapWeek;
+      d.recapMatchups = d.recapMatchups || { [week]: d.matchups };
+      if (!d.recapMatchups[rw] && rw > 0) {
+        view.innerHTML = renderStandings(st, null, league, weeks, rw, week);
+        d.recapMatchups[rw] = await getJSON(SLEEPER + '/league/' + league.league_id + '/matchups/' + rw);
+        if (!stillHere()) return;
+      }
+      const recap = rw > 0 ? weeklyRecap({ league, rosters: d.rosters, users: d.users, matchups: d.recapMatchups[rw] || [], players: app.players, week: rw }) : { empty: true, week: rw };
+      d.recapCache = { recap, league };
+      view.innerHTML = renderStandings(st, recap, league, weeks, rw, week);
+      return;
+    }
 
     if (tab === 'trade') {
       if (!d.tradeStats) {
@@ -159,6 +172,39 @@ $('#view').addEventListener('click', e => {
     if (reset.dataset.treset === 'picks') { d.trade.give = []; d.trade.get = []; }
     else Store.set('sd_trade_' + app.leagueId, null);
     showLeague();
+  }
+});
+
+// Recap: pick a week, copy or share the text.
+$('#view').addEventListener('change', e => {
+  if (e.target.id !== 'recap-week') return;
+  app.leagueData[app.leagueId].recapWeek = Number(e.target.value);
+  showLeague();
+});
+
+function copyText(text) {
+  if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text);
+  // Fallback for older browsers
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select();
+  const ok = document.execCommand('copy');
+  ta.remove();
+  return ok ? Promise.resolve() : Promise.reject(new Error('copy failed'));
+}
+
+$('#view').addEventListener('click', e => {
+  const b = e.target.closest('[data-recap]');
+  if (!b) return;
+  const d = app.leagueData[app.leagueId];
+  const text = recapText(d.recapCache.league, d.recapCache.recap);
+  const msg = $('#recap-msg');
+  if (b.dataset.recap === 'share') {
+    navigator.share({ text }).catch(() => {});
+  } else {
+    copyText(text)
+      .then(() => { msg.textContent = '✓ Copied! Open your league chat in Sleeper and paste.'; })
+      .catch(() => { msg.textContent = 'Couldn\'t copy automatically — open "Preview chat text", press and hold the text, and copy it.'; });
   }
 });
 
