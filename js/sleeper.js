@@ -54,16 +54,27 @@ function expandPlayers(trimmed) {
 async function loadPlayers(force) {
   try { localStorage.removeItem('sd_players_v1'); } catch (e) { /* old saved copy, no longer used */ }
   const saved = Store.get(PLAYER_KEY);
-  if (!force && isFresh(saved, CONFIG.playerCacheHours)) {
-    return { players: expandPlayers(saved.data), savedAt: saved.savedAt };
+  // The small copy on our own site is rebuilt every hour, so it's worth checking more often.
+  const hours = saved && saved.source === 'site' ? CONFIG.playerSiteCacheHours : CONFIG.playerCacheHours;
+  if (!force && isFresh(saved, hours)) {
+    return { players: expandPlayers(saved.data), savedAt: saved.builtAt || saved.savedAt };
   }
   try {
-    const trimmed = trimPlayers(await getJSON(SLEEPER + '/players/nfl'));
-    const savedAt = Date.now();
-    Store.set(PLAYER_KEY, { savedAt, data: trimmed });
+    let source = 'site', trimmed, savedAt;
+    // Fast: the ~160 KB copy built on GitHub (tools/build-data.js). Slow fallback: Sleeper's full ~15 MB list.
+    const site = await fetch('data/players.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : null).catch(() => null);
+    if (site && site.data && Object.keys(site.data).length > 1000) {
+      trimmed = site.data; savedAt = site.savedAt;
+    } else {
+      source = 'sleeper';
+      trimmed = trimPlayers(await getJSON(SLEEPER + '/players/nfl'));
+      savedAt = Date.now();
+    }
+    // savedAt = when this phone last checked (decides when to look again); builtAt = how old the list is.
+    Store.set(PLAYER_KEY, { savedAt: Date.now(), builtAt: savedAt, source, data: trimmed });
     return { players: expandPlayers(trimmed), savedAt };
   } catch (err) {
-    if (saved) return { players: expandPlayers(saved.data), savedAt: saved.savedAt, stale: true };
+    if (saved) return { players: expandPlayers(saved.data), savedAt: saved.builtAt || saved.savedAt, stale: true };
     throw err;
   }
 }
@@ -137,3 +148,6 @@ function loadTrending() {
   }
   return trendingPromise;
 }
+
+// Lets tools/build-data.js (Node, on GitHub) reuse the same trimming code.
+if (typeof module !== 'undefined') module.exports = { trimPlayers };

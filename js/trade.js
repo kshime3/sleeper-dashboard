@@ -66,20 +66,16 @@ function injuryFactor(p, strength) {
   return { factor: 1 - cut, text: cut ? '−' + Math.round(cut * 100) + '%' : '' };
 }
 
-// Work out every player's numbers in this league. weekStats = [{ week, stats }] newest first.
+// Work out every player's numbers in this league. ctx.points = this league's points (js/stats.js).
 function tradeValues(ctx, settings) {
-  const { league, rosters, players, seasonStats, weekStats, byes } = ctx;
-  const scoring = league.scoring_settings || {};
+  const { league, rosters, players, points, byes } = ctx;
   const w = settings.recentWeight / 100;
 
   const base = id => {
     const p = players[id];
     if (!p) return null;
-    const season = seasonLine(seasonStats, id, scoring, p.pos);
-    const recent = weekStats.map(ws => {
-      const s = ws.stats && ws.stats[id];
-      return { week: ws.week, pts: s && s.gp ? fantasyPoints(s, scoring, p.pos) : null };
-    });
+    const season = points.season(id);
+    const recent = points.weeks.map(wk => ({ week: wk, pts: points.week(wk, id) }));
     const played = recent.filter(r => r.pts != null);
     const recentPpg = played.length ? played.reduce((a, r) => a + r.pts, 0) / played.length : null;
     // No recent games (hurt/benched)? Then use the season average for the recent part too.
@@ -94,8 +90,7 @@ function tradeValues(ctx, settings) {
   for (const id in players) {
     const p = players[id];
     if (rostered.has(id) || !p.team) continue;
-    const season = seasonStats[id];
-    if (!season || (season.gp || 0) < CONFIG.trade.minGamesForReplacement) continue;
+    if (points.season(id).games < CONFIG.trade.minGamesForReplacement) continue;
     if ((CONFIG.trade.injuryCut[p.injury] || 0) >= 0.4) continue; // long-term injured don't count
     const b = base(id);
     if (b && b.blended > (repl[p.pos] || 0)) { repl[p.pos] = b.blended; replWho[p.pos] = p.name; }

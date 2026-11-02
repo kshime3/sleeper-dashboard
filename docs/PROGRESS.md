@@ -25,4 +25,8 @@
 
 - Built **Standings & Weekly Recap** (last of the 4 features): standings with W-L, PF, PA, streak, your team highlighted, dashed playoff cutoff line (guillotine: survivors ranked by points, chopped teams greyed). Recap for any week (defaults to last week; current week marked in progress): top/lowest score, biggest blowout, closest game, player of the week, best bench performance, most points left on the bench (guillotine: chopped team and closest call). Copy button (and Android Share button) produce plain text for the league chat. Tested in all 4 leagues, no errors.
 
-**Next:** owner tests on the phone. All four planned features are done; then polish / ideas from the owner.
+- Owner tested Standings & Recap. Polish list chosen (in this order): 1) faster loading + remember last tab + Guillotine last, 2) opens instantly/offline, 3) game status on lineup + live scores, 4) **Game Day tab** (all my players from every league on one screen, live), 5) player details on tap.
+- Done polish 1: hourly GitHub build makes small data files (player list + each league's points), so opening the app downloads ~0.4 MB instead of ~3.2 MB; results identical either way (checked all tabs/leagues). App reopens on your last tab; Guillotine league listed last.
+- Owner needs to switch GitHub Pages "Source" to "GitHub Actions" for the hourly build to publish.
+
+**Next:** owner switches Pages source + tests; then polish 2 (opens instantly/offline).

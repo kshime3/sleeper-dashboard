@@ -1,7 +1,8 @@
 // Every setting you might want to change lives here.
 const CONFIG = {
   username: 'kshime4',          // your Sleeper username
-  playerCacheHours: 24,         // re-download the big player list at most this often
+  playerCacheHours: 24,         // re-download Sleeper's big player list at most this often (fallback only)
+  playerSiteCacheHours: 2,      // re-check the small player list on our site (rebuilt hourly) this often
   scheduleCacheHours: 24,       // same for the NFL schedule (used for bye weeks)
 
   waivers: {

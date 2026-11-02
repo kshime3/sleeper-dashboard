@@ -24,6 +24,8 @@ The owner is not very technical. Same working style as their Chained Dice projec
 
 - **FantasyPros Dynasty Trade Value Chart** (monthly article, e.g. `fantasypros.com/2026/10/fantasy-football-rankings-dynasty-trade-value-chart-october-2026-update/`). Player values are in 4 Datawrapper charts (`datawrapper.dwcdn.net/<id>/<ver>/dataset.csv`, tab-separated; old versions forward to new ones); rookie pick values are tables in the article. `tools/update-dynasty.js` (run daily by `.github/workflows/dynasty-values.yml`) tries this month's article, then last month's, matches names to Sleeper IDs and writes `data/dynasty-values.json` only if it changed. Used for dynasty leagues in the Trade tab (superflex values for QBs in SF leagues; TE-premium values if `bonus_rec_te`). Owner OK'd storing it in the public repo **as long as FantasyPros is credited** (credit + link shown wherever values appear). Running it locally here needs `NODE_USE_ENV_PROXY=1 NODE_EXTRA_CA_CERTS=/root/.ccr/ca-bundle.crt`.
 
+- **Pre-built data (faster loading):** GitHub Pages is published by `.github/workflows/publish.yml` (Pages source = GitHub Actions), which first runs `tools/build-data.js`: trimmed player list (`data/players.json`, ~160 KB) and each league's points (`data/stats.json`: per player [season total, games, last 3 weeks]). Both reuse the page's own code (config/sleeper/stats.js via `vm`). The page uses them when present and matching the current week, else falls back to Sleeper's big downloads. These files are gitignored; build locally with the proxy env vars above to test.
+
 ## Leagues (2026)
 
 MFFL (keeper: one keeper, costs a 6th-round pick each year), 🪓 Guillotine MFFL (guillotine: lowest score each week is eliminated; owner already eliminated), LocusLeague (redraft), MFFL Dynasty (dynasty). Notes in `CONFIG.leagueNotes`.
@@ -53,4 +55,6 @@ docs/PROGRESS.md      dated session log and next step
 data/dynasty-values.json   FantasyPros dynasty values (written by the updater, don't edit by hand)
 tools/update-dynasty.js    the updater (Node, no installs needed)
 .github/workflows/dynasty-values.yml   runs the updater daily on GitHub
+tools/build-data.js        builds data/players.json + data/stats.json (not in git; built on GitHub)
+.github/workflows/publish.yml          publishes the site hourly + on every push, after build-data
 ```

@@ -1,0 +1,36 @@
+# Publishes the website, with small pre-built data files (player list + your leagues' points)
+# so the phone doesn't have to download Sleeper's big files. Runs every hour, and whenever code changes.
+name: Publish site
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '7 * * * *'     # every hour at :07
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Build data files
+        # If Sleeper is down, publish anyway: the page falls back to asking Sleeper directly.
+        run: node tools/build-data.js || echo "Data build failed; publishing without it."
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+      - id: deployment
+        uses: actions/deploy-pages@v4

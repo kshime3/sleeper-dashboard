@@ -12,8 +12,7 @@ function leaguePositions(league) {
 // How strong is each team at each position? Compare the average points per game of each team's
 // top N players there (N = how many dedicated lineup spots that position has, at least 1).
 function positionStrength(ctx) {
-  const { league, rosters, players, seasonStats, userId } = ctx;
-  const scoring = league.scoring_settings || {};
+  const { league, rosters, players, points, userId } = ctx;
   const alive = rosters.filter(r => (r.players || []).length);
   const mine = alive.find(r => isMine(r, userId));
   const out = [];
@@ -23,7 +22,7 @@ function positionStrength(ctx) {
       const top = (r.players || [])
         .map(id => players[id])
         .filter(p => p && p.positions.includes(pos))
-        .map(p => ({ player: p, ...seasonLine(seasonStats, p.id, scoring, p.pos) }))
+        .map(p => ({ player: p, ...points.season(p.id) }))
         .sort((a, b) => b.ppg - a.ppg)
         .slice(0, n);
       while (top.length < n) top.push({ player: null, ppg: 0 }); // an empty spot counts as 0
@@ -45,8 +44,8 @@ function positionStrength(ctx) {
 }
 
 function analyzeWaivers(ctx) {
-  const { league, rosters, players, seasonStats, lastWeekStats, trending, userId, byes, team } = ctx;
-  const scoring = league.scoring_settings || {};
+  const { league, rosters, players, points, trending, userId, byes, team } = ctx;
+  const lastWeek = points.weeks[0];
   const positions = leaguePositions(league);
   const rostered = new Set();
   for (const r of rosters) for (const id of r.players || []) rostered.add(id);
@@ -71,7 +70,7 @@ function analyzeWaivers(ctx) {
   for (const id in players) {
     const p = players[id];
     if (rostered.has(id) || !p.team || !positions.includes(p.pos)) continue;
-    const line = seasonLine(seasonStats, id, scoring, p.pos);
+    const line = points.season(id);
     const trend = trendCount[id] || 0;
     if (!trend && line.games < CONFIG.waivers.minGamesForPoints) continue;
     const flags = playerFlags(p, byes, false);
@@ -86,7 +85,7 @@ function analyzeWaivers(ctx) {
     }
     entries.push({
       player: p, trend, line, flags, fits, healthy,
-      lastWeek: lastWeekStats && lastWeekStats[id] ? fantasyPoints(lastWeekStats[id], scoring, p.pos) : null,
+      lastWeek: lastWeek ? points.week(lastWeek, id) : null,
     });
   }
 

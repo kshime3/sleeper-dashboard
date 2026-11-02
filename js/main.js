@@ -3,7 +3,7 @@ const app = {
   me: null, players: null, playersSavedAt: null, schedule: null,
   leagueData: {},      // league_id -> { rosters, users, matchups }
   leagueId: null,
-  tab: 'team',
+  tab: ['team', 'waivers', 'trade', 'standings'].includes(Store.get('sd_tab')) ? Store.get('sd_tab') : 'team', // reopen on your last tab
   tradePos: 'ALL',
   fp: null,            // FantasyPros dynasty values (data/dynasty-values.json)
   waiverOpts: Object.assign({ filter: 'ALL', sort: 'trend' }, Store.get('sd_waiver_opts') || {}),
@@ -66,15 +66,13 @@ async function showLeague() {
     }
 
     if (tab === 'trade') {
-      if (!d.tradeStats) {
+      if (!d.points || !d.tradeExtrasLoaded) {
         view.innerHTML = '<p class="muted center">Loading stats…</p>';
-        const weeks = [];
-        for (let w = week - 1; w >= 1 && weeks.length < CONFIG.trade.recentWeeks; w--) weeks.push(w);
-        const [seasonStats, ...weekly] = await Promise.all([loadStats(app.me.season, 0)].concat(weeks.map(w => loadStats(app.me.season, w).catch(() => ({})))));
-        d.tradeStats = { seasonStats, weekStats: weeks.map((w, i) => ({ week: w, stats: weekly[i] })) };
+        d.points = await loadPoints(league, app.me.season, week, app.players);
         app.fp = await loadDynastyValues();
         d.tradedPicks = leagueFormat(league) === 'dynasty'
           ? await getJSON(SLEEPER + '/league/' + league.league_id + '/traded_picks').catch(() => []) : [];
+        d.tradeExtrasLoaded = true;
       }
       if (!stillHere()) return;
       d.byes = byes;
@@ -85,14 +83,13 @@ async function showLeague() {
     // Waiver Wire: needs season stats, last week's stats and trending adds (a few MB, once per visit).
     if (!d.waivers) {
       view.innerHTML = '<p class="muted center">Loading stats and trending players…</p>';
-      const lastWeek = week > 1 ? week - 1 : 0;
-      const [seasonStats, lastWeekStats, trending] = await Promise.all([
-        loadStats(app.me.season, 0),
-        lastWeek ? loadStats(app.me.season, lastWeek).catch(() => null) : null,
+      const [points, trending] = await Promise.all([
+        loadPoints(league, app.me.season, week, app.players),
         loadTrending().catch(() => []),
       ]);
+      d.points = points;
       d.waivers = analyzeWaivers({
-        league, rosters: d.rosters, players: app.players, seasonStats, lastWeekStats, trending,
+        league, rosters: d.rosters, players: app.players, points, trending,
         userId: app.me.user.user_id, byes, team,
       });
     }
@@ -131,7 +128,7 @@ function buildTrade(league, d) {
   const settings = tradeSettingsFor(league);
   const values = tradeValues({
     league, rosters: d.rosters, players: app.players,
-    seasonStats: d.tradeStats.seasonStats, weekStats: d.tradeStats.weekStats, byes: d.byes, fp: app.fp,
+    points: d.points, byes: d.byes, fp: app.fp,
   }, settings);
   // Dynasty + FantasyPros: add each team's draft picks to its list.
   const fpOn = usesFP(league, settings, app.fp);
@@ -236,6 +233,8 @@ $('#view').addEventListener('input', e => {
 
 function fillLeaguePicker() {
   const sel = $('#league-picker');
+  // Guillotine leagues go last (you're usually eliminated there; still handy for standings and recaps).
+  app.me.leagues.sort((a, b) => isGuillotine(a) - isGuillotine(b));
   sel.innerHTML = app.me.leagues.map(l =>
     '<option value="' + esc(l.league_id) + '">' + esc(l.name) + '</option>').join('');
   const remembered = Store.get('sd_league');
@@ -247,6 +246,7 @@ async function reloadAll(forcePlayers) {
   const btn = $('#refresh');
   btn.classList.add('spin');
   app.leagueData = {};
+  clearStatsCache();
   try {
     const [me, pl] = await Promise.all([loadMe(CONFIG.username), loadPlayers(forcePlayers)]);
     app.me = me;
@@ -273,10 +273,14 @@ $('#league-picker').addEventListener('change', e => {
 document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => {
   document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('active', x === b));
   app.tab = b.dataset.tab;
+  Store.set('sd_tab', app.tab);
   if (app.me) showLeague();
   window.scrollTo(0, 0);
 }));
 
 $('#refresh').addEventListener('click', () => reloadAll(false));
+
+// Highlight the tab you were last on.
+document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('active', x.dataset.tab === app.tab));
 
 reloadAll(false);
