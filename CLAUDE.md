@@ -14,6 +14,7 @@ The owner is not very technical. Same working style as their Chained Dice projec
 - Every setting you might tune lives in `js/config.js`.
 - Explain things in plain language. Ask before big decisions.
 - **Cache-busting:** index.html loads every CSS/JS file with `?v=YYYYMMDDx`. When changing css/ or js/, bump that tag everywhere in index.html (one sed).
+- **Keep "share with friends" possible** (parked plan in `docs/IDEAS.md`: friends enter their own Sleeper username). Before any change, check whether it would make that harder, e.g. new hard-coded owner details (username, league names/IDs), phone storage not keyed per user, or data built only for the owner's leagues. Prefer the friend-friendly way when it costs little; if it doesn't, tell the owner the trade-off before building, and note it in `docs/IDEAS.md`. (Already owner-only today: `CONFIG.username`, `CONFIG.leagueNotes`, `tools/build-data.js` points for the owner's leagues; ESPN leagues will stay owner-only.)
 - GitHub Pages shares one web address (kshime3.github.io) with Chained Dice, so phone storage is shared too: keep saved data small (the trimmed player list is ~200 KB) and prefix keys with `sd_`.
 
 ## Data sources

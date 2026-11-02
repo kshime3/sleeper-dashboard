@@ -28,6 +28,8 @@ Let friends use the same link with their own leagues.
 
 **Size:** about one session of work.
 
+**Status:** parked (owner's choice, 2026-11-02). Future changes should keep this possible; CLAUDE.md has a working rule to check, and to tell the owner when something would make it harder.
+
 ## ESPN leagues (discussed 2026-11-02)
 
 The owner has two teams in ESPN leagues and wants them in the dashboard next to the Sleeper leagues.

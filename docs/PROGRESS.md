@@ -49,4 +49,6 @@
 
 - Wrote docs/IDEAS.md: ESPN leagues plan (private leagues: relay vs hourly robot) and the "share with friends" idea (enter a Sleeper username).
 
-**Next:** owner tests idea filters; owner deciding on "share with friends"; ESPN leagues when the owner follows up.
+- Owner: keep "share with friends" parked, but flag future decisions that affect it (added as a working rule in CLAUDE.md).
+
+**Next:** owner tests idea filters; ESPN leagues when the owner follows up.
