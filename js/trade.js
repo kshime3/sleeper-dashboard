@@ -66,6 +66,11 @@ function injuryFactor(p, strength) {
   return { factor: 1 - cut, text: cut ? '−' + Math.round(cut * 100) + '%' : '' };
 }
 
+// Was his NFL team on bye that week? (needs the schedule; if unknown, assume not)
+function teamOnBye(schedule, week, team) {
+  return !!(schedule && team && schedule[week] && schedule[week].size && !schedule[week].has(team));
+}
+
 // Work out every player's numbers in this league. ctx.points = this league's points (js/stats.js).
 function tradeValues(ctx, settings) {
   const { league, rosters, players, points, byes } = ctx;
@@ -78,9 +83,13 @@ function tradeValues(ctx, settings) {
     const recent = points.weeks.map(wk => ({ week: wk, pts: points.week(wk, id) }));
     const played = recent.filter(r => r.pts != null);
     const recentPpg = played.length ? played.reduce((a, r) => a + r.pts, 0) / played.length : null;
-    // No recent games (hurt/benched)? Then use the season average for the recent part too.
-    const blended = recentPpg == null ? season.ppg : (1 - w) * season.ppg + w * recentPpg;
-    return { player: p, season, recent, recentPpg, blended, flags: playerFlags(p, byes, false) };
+    // Recent form counts in proportion to how many of his team's recent games he played
+    // (bye weeks don't count against him). Played 1 of 3 -> recent counts a third as much.
+    const possible = recent.filter(r => !teamOnBye(ctx.schedule, r.week, p.team)).length || recent.length;
+    const share = possible ? Math.min(1, played.length / possible) : 0;
+    const wUsed = w * share;
+    const blended = recentPpg == null ? season.ppg : (1 - wUsed) * season.ppg + wUsed * recentPpg;
+    return { player: p, season, recent, recentPpg, blended, recentPlayed: played.length, recentPossible: possible, recentWeight: wUsed, fullWeight: w, flags: playerFlags(p, byes, false) };
   };
 
   // Replacement level: the best free agent (by the same blend) at each position.

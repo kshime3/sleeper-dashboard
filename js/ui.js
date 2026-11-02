@@ -186,7 +186,9 @@ function whyText(b) {
       : 'Not on the ' + src + ' chart, so he gets their "All other ' + b.player.pos + 's" value: ' + b.value + ' (est.)';
   }
   return 'Blend ' + b.blended.toFixed(1) + '/g (season ' + b.season.ppg.toFixed(1) +
-    (b.recentPpg != null ? ', recent ' + b.recentPpg.toFixed(1) : ', no recent games') + ')' +
+    (b.recentPpg != null ? ', recent ' + b.recentPpg.toFixed(1) +
+      (b.recentPlayed < b.recentPossible ? ' — played ' + b.recentPlayed + ' of ' + b.recentPossible + ', so recent counts ' + Math.round(b.recentWeight * 100) + '% instead of ' + Math.round(b.fullWeight * 100) + '%' : '')
+      : ', no recent games, so season only') + ')' +
     ' − best free agent ' + b.player.pos + ' (' + b.replWho + ') ' + b.repl.toFixed(1) +
     ' = ' + (b.over >= 0 ? '+' : '') + b.over.toFixed(1) + (b.over < 0 ? ' → counts as 0' : '') +
     (b.age.text ? ' · age ' + b.player.age + ': ' + b.age.text : '') +
@@ -337,7 +339,7 @@ function renderTrade(t) {
             : 'Off: using the formula below instead.') + '</p>'
         : '') +
       '<p class="small">A player\'s <b>value</b> = how many more points per game he scores than the <b>best free agent at his position</b> in this league, adjusted for age and injury. Anyone no better than a free agent counts as 0. Points use this league\'s scoring.</p>' +
-      slider('recentWeight', 'Recent weeks vs. season', s.recentWeight, 'How much of the points-per-game blend comes from the last ' + CONFIG.trade.recentWeeks + ' weeks (the rest is the whole season). 0% = season only, 100% = recent only.') +
+      slider('recentWeight', 'Recent weeks vs. season', s.recentWeight, 'How much of the points-per-game blend comes from the last ' + CONFIG.trade.recentWeeks + ' weeks (the rest is the whole season). 0% = season only, 100% = recent only. If he missed some of those games (byes don\'t count), recent counts less: played 1 of 3 = a third as much.') +
       slider('ageEffect', 'Age matters', s.ageEffect, 'Young players get up to +15%; each year past peak age (QB 30, RB 25, WR/TE 27) costs RB 10%, WR/TE 6%, QB 4%. Starts at 100% in dynasty, 50% in keeper, 0% in redraft.') +
       slider('injuryEffect', 'Injury cut', s.injuryEffect, 'At 100%: Questionable −5%, Doubtful −15%, Out −20%, IR/PUP/Suspended −40%.') +
       '<button class="btn small-btn" data-treset="settings">Reset to defaults</button>' +

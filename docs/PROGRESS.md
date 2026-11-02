@@ -55,4 +55,7 @@
 
 - Game Day score cards are now tappable (owner asked): tap → My Team for that league (› shown on each card).
 
+- Owner tested tappable score cards: works. Explained the MFFL (keeper) trade value formula; owner chose to fix the "one big recent game" problem.
+- Fixed: recent form now counts in proportion to games played in the last 3 weeks (byes don't count as missed). E.g. Tyler Warren (1 of 3 games) recent weight 50% → 17%, value 7.3 → 4.2. "why?" explains it. Still open (offered, not chosen yet): rest-of-season value (byes/playoff weeks), keeper value for MFFL (suggested for the offseason).
+
 **Next:** owner tests; ESPN leagues when the owner follows up.

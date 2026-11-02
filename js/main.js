@@ -158,7 +158,7 @@ function buildTrade(league, d) {
   const settings = tradeSettingsFor(league);
   const values = tradeValues({
     league, rosters: d.rosters, players: app.players,
-    points: d.points, byes: d.byes, fp: app.fp,
+    points: d.points, byes: d.byes, fp: app.fp, schedule: app.schedule,
   }, settings);
   // Dynasty + FantasyPros: add each team's draft picks to its list.
   const fpOn = usesFP(league, settings, app.fp);

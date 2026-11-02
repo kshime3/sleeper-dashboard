@@ -2,6 +2,12 @@
 
 Ideas we've talked about but haven't built yet. Newest at the top.
 
+## Trade values: rest of season and keeper value (discussed 2026-11-02)
+
+Two known gaps in the non-dynasty trade values (MFFL, LocusLeague):
+- **Per game, not rest of season:** values don't account for upcoming byes, multi-week injuries, or how many weeks are left before the playoffs (MFFL/LocusLeague playoffs start week 15).
+- **Keeper value (MFFL):** a player worth keeping next year (cost: a 6th-round pick) gets no extra value beyond the half-strength age adjustment. Suggested for closer to the offseason.
+
 ## Share with friends: "enter your Sleeper username" (discussed 2026-11-02)
 
 Let friends use the same link with their own leagues.
