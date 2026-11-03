@@ -327,3 +327,13 @@ body.sheet-open { overflow: hidden; }
 .mgr-titles { font-size: 13px; }
 .mgr-stats { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; color: var(--muted); margin: 4px 0 0 22px; }
 .mgr-stats b { color: var(--text); }
+
+/* Trades in hindsight */
+.hind-cta { background: var(--card-2); border-radius: 10px; padding: 10px; margin: 4px 0 10px; display: grid; gap: 8px; }
+.hverdict { margin-top: 6px; padding: 7px 10px; border-radius: 8px; font-size: 14px; background: var(--card-2); }
+.hverdict.win { background: rgba(60, 207, 122, .14); }
+.hverdict.early, .hverdict.none { color: var(--muted); }
+.htotal { float: right; font-weight: 600; color: var(--muted); font-size: 13px; }
+.htotal.won { color: var(--good); }
+.hpts { float: right; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.hbecame .hpts { color: var(--muted); }

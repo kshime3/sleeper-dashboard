@@ -52,6 +52,11 @@ const CONFIG = {
     pageSize: 40,     // show this many trades/transactions, then "Show more"
     seasonsAtOnce: 4, // download this many seasons at the same time (first load only)
     recordsTop: 5,    // League records: show the top 5 in each list
+    hindsight: {
+      minWeeks: 3,      // fewer weeks played since the trade than this: "too early to tell"
+      evenPoints: 15,   // a gap smaller than this many points is "even so far"...
+      evenShare: 0.1,   // ...or smaller than 10% of the bigger side
+    },
   },
 
   // Your notes about each league (matched by league name). Sleeper's own settings

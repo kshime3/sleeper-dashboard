@@ -226,7 +226,7 @@ app.history = {};
 function histFor(id) {
   return app.history[id] = app.history[id] || {
     hist: null, view: 'trades', loading: '', error: '', limit: CONFIG.history.pageSize,
-    f: { season: 'all', team: 'all', q: '', type: 'all', failed: false },
+    f: { season: 'all', team: 'all', q: '', type: 'all', failed: false, sort: 'newest' },
   };
 }
 
@@ -276,6 +276,7 @@ $('#view').addEventListener('click', async e => {
         h.recLoading = 'Loading seasons… ' + n + ' of ' + total + ' done';
         if (app.leagueId === id) redrawHistory();
       });
+      h.hind = tradeHindsight(h.hist); // same weekly scores power "trades in hindsight"
     } catch (err) {
       h.recError = 'Couldn\'t load the records: ' + err.message;
     }

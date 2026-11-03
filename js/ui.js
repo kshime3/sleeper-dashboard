@@ -521,9 +521,15 @@ function histPlayer(p) {
 }
 
 function renderHistoryList(h, st) {
-  const list = filterHistory(h, st.view, st.f);
+  const list = filterHistory(h, st.view, Object.assign({}, st.f, { hind: st.hind }));
   const shown = list.slice(0, st.limit);
-  let html = '<div class="pmeta small hcount">' + list.length + (st.view === 'trades' ? ' trade' : ' transaction') + (list.length === 1 ? '' : 's') + '</div>';
+  let html = '';
+  if (st.view === 'trades' && !st.hind) {
+    html += '<div class="hind-cta"><div class="pmeta small">See which side came out ahead: points each team got from what it received, in its starting lineup, since the trade.</div>' +
+      '<button class="btn small-btn" data-rload' + (st.recLoading ? ' disabled' : '') + '>' + esc(st.recLoading || '📈 Show how trades turned out') + '</button>' +
+      (st.recError ? '<div class="pmeta trail">' + esc(st.recError) + '</div>' : '') + '</div>';
+  }
+  html += '<div class="pmeta small hcount">' + list.length + (st.view === 'trades' ? ' trade' : ' transaction') + (list.length === 1 ? '' : 's') + '</div>';
   if (!list.length) html += '<div class="pmeta">Nothing matches these filters.</div>';
   for (const x of shown) {
     // Sleeper files offseason moves under week 1; anything dated before September is offseason.
@@ -531,20 +537,36 @@ function renderHistoryList(h, st) {
     const when = fmtDate(x.date) + ' · ' + x.season + (offseason ? ' offseason' : ' wk ' + x.week);
     if (st.view === 'trades') {
       const me = app.me && app.me.user.user_id;
+      const hs = st.hind && st.hind[x.id];
+      const ptsFor = (sd, pid) => {
+        if (!hs || !pid) return '';
+        const s2 = hs.sides.find(z => z.rid === sd.team.rid);
+        return s2 && s2.per[pid] != null ? ' <span class="hpts">' + s2.per[pid].toFixed(1) + ' pts</span>' : '';
+      };
+      const sideTotal = sd => {
+        if (!hs) return '';
+        const s2 = hs.sides.find(z => z.rid === sd.team.rid);
+        const won = hs.verdict.winnerRid === sd.team.rid;
+        return s2 ? ' <span class="htotal' + (won ? ' won' : '') + '">' + (won ? '🏅 ' : '') + s2.total.toFixed(1) + ' pts</span>' : '';
+      };
       const side = sd => {
         const mine = sd.team.owner && sd.team.owner === me;
-        const items = sd.players.map(p => '<div class="hrow">' + histPlayer(p) + '</div>')
+        const items = sd.players.map(p => '<div class="hrow">' + histPlayer(p) + ptsFor(sd, p.id) + '</div>')
           .concat(sd.picks.map(pk => '<div class="hrow"><span class="slot inline PICK">PICK</span> ' + esc(pk.label) +
             (pk.from ? '<div class="pmeta small hfrom">originally ' + esc(pk.from) + '\'s</div>' : '') +
             (pk.became
               ? '<div class="hbecame">→ became ' + (pk.became.id ? histPlayer(pk.became) : esc(pk.became.name)) + ' <span class="pmeta small">(pick ' + esc(pk.became.pick) +
-                  (pk.became.by ? ', drafted by ' + esc(pk.became.by) : '') + ')</span></div>'
+                  (pk.became.by ? ', drafted by ' + esc(pk.became.by) : '') + ')</span>' + ptsFor(sd, pk.became.id) + '</div>'
               : pk.notYet ? '<div class="pmeta small hfrom">→ not drafted yet</div>' : '') + '</div>'))
           .concat(sd.faab ? ['<div class="hrow">💰 $' + sd.faab + ' FAAB</div>'] : []);
-        return '<div class="hblock' + (mine ? ' mine' : '') + '"><div class="hhead">' + esc(sd.team.name) + (mine ? ' <span class="pmeta">(you)</span>' : '') + ' receives</div>' +
+        return '<div class="hblock' + (mine ? ' mine' : '') + '"><div class="hhead">' + esc(sd.team.name) + (mine ? ' <span class="pmeta">(you)</span>' : '') + ' receives' + sideTotal(sd) + '</div>' +
           (items.join('') || '<div class="pmeta">nothing</div>') + '</div>';
       };
       html += '<div class="hitem"><div class="pmeta small">🔁 Trade · ' + esc(when) + '</div>' +
+        (hs ? '<div class="hverdict ' + hs.verdict.kind + '">' + (hs.verdict.kind === 'early' ? '⏳ Too early to tell (' + hs.weeksSince + ' week' + (hs.weeksSince === 1 ? '' : 's') + ' played since)'
+          : hs.verdict.kind === 'none' ? '⏳ Neither side has scored in a starting lineup yet'
+          : hs.verdict.kind === 'even' ? '⚖️ Even so far (' + hs.diff.toFixed(1) + ' pts apart)'
+          : '📈 So far: <b>' + esc((x.sides.find(z => z.team.rid === hs.verdict.winnerRid) || { team: { name: '?' } }).team.name) + ' +' + hs.diff.toFixed(1) + ' pts</b>') + '</div>' : '') +
         x.sides.map(side).join('<div class="hswap">⇅</div>') + '</div>';
     } else {
       const icon = x.type === 'waiver' ? (x.status === 'complete' ? '📥' : '❌') : x.type === 'free_agent' ? '🆓' : '🛠️';
@@ -578,6 +600,7 @@ function renderHistory(st) {
       sel('season', [['all', 'All seasons']].concat(h.seasons.map(s => [s, s]))) +
       sel('team', [['all', 'All teams']].concat(Object.entries(h.managers).sort((a, b) => a[1].localeCompare(b[1])).map(([id, n]) => [id, n]))) +
       (st.view === 'moves' ? sel('type', [['all', 'All types'], ['waiver', 'Waiver claims'], ['free_agent', 'Free agents'], ['commissioner', 'Commissioner']]) : '') +
+      (st.view === 'trades' && st.hind ? sel('sort', [['newest', 'Newest first'], ['lopsided', 'Most lopsided first']]) : '') +
       '<input type="search" data-hfilter="q" placeholder="Search a player…" value="' + esc(f.q) + '">' +
       (st.view === 'moves' ? '<label class="hcheck"><input type="checkbox" data-hfilter="failed"' + (f.failed ? ' checked' : '') + '> Show failed waiver bids</label>' : '') +
     '</div><div id="hist-list">' + renderHistoryList(h, st) + '</div>';

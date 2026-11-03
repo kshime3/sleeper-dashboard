@@ -195,10 +195,13 @@ function filterHistory(h, view, f) {
   const q = (f.q || '').trim().toLowerCase();
   const names = list => list.map(p => p.name.toLowerCase());
   if (view === 'trades') {
-    return h.trades.filter(t =>
+    const list = h.trades.filter(t =>
       (f.season === 'all' || t.season === f.season) &&
       (f.team === 'all' || t.sides.some(s => s.team.owner === f.team)) &&
       (!q || t.sides.some(s => names(s.players).some(n => n.includes(q)) || s.picks.some(p => (p.label + ' ' + p.from + ' ' + (p.became ? p.became.name : '')).toLowerCase().includes(q)))));
+    // "Most lopsided first" (needs trades in hindsight)
+    if (f.sort === 'lopsided' && f.hind) list.sort((a, b) => ((f.hind[b.id] || {}).diff || 0) - ((f.hind[a.id] || {}).diff || 0));
+    return list;
   }
   return h.moves.filter(m =>
     (f.season === 'all' || m.season === f.season) &&
@@ -226,6 +229,7 @@ async function loadRecords(h, currentWeek, onProgress) {
     if (onProgress) onProgress(done, h.seasonInfo.length);
     return { si, finished, bracket: bracket || [], weeks: weeks.map((w, i) => ({ week: w, matchups: weekly[i] || [] })) };
   });
+  h.weekly = perSeason; // kept for "trades in hindsight"
   return buildRecords(h, perSeason);
 }
 
@@ -297,4 +301,55 @@ function buildRecords(h, perSeason) {
     seasonRecord: seasonTotals.slice().sort((a, b) => (b.w - a.w) || (b.pf - a.pf)).slice(0, top),
     seasonsCount: perSeason.length,
   };
+}
+
+// ---------- Trades in hindsight ----------
+// For each team in a trade: points the players it received scored in ITS starting lineup,
+// every week from the trade on (stops if he leaves, starts again if he comes back).
+// A used draft pick counts the player it became, the same way. Bench points don't count.
+function tradeHindsight(h) {
+  // Every played week, oldest first: { key, byRid: { roster_id: { starters: Set, pts } } }
+  const weeks = [];
+  for (const { si, weeks: ws } of h.weekly || []) {
+    for (const { week, matchups } of ws) {
+      const byRid = {};
+      for (const m of matchups || []) {
+        if (!m) continue;
+        byRid[m.roster_id] = { starters: new Set(m.starters || []), pts: m.players_points || {} };
+      }
+      weeks.push({ season: Number(si.season), week, byRid });
+    }
+  }
+  weeks.sort((a, b) => (a.season - b.season) || (a.week - b.week));
+  const cfg = CONFIG.history.hindsight;
+  const out = {};
+  for (const t of h.trades) {
+    const season = Number(t.season);
+    const offseason = t.date && new Date(t.date) < new Date(season, 8, 1);
+    const from = { season, week: offseason ? 1 : (t.week || 1) };
+    const after = weeks.filter(w => w.season > from.season || (w.season === from.season && w.week >= from.week));
+    const sides = t.sides.map(sd => {
+      const rid = sd.team.rid;
+      const items = sd.players.map(p => p.id).concat(sd.picks.filter(pk => pk.became && pk.became.id).map(pk => pk.became.id));
+      const per = {};
+      for (const pid of items) per[pid] = 0;
+      for (const w of after) {
+        const r = w.byRid[rid];
+        if (!r) continue;
+        for (const pid of items) if (r.starters.has(pid) && r.pts[pid] != null) per[pid] += r.pts[pid];
+      }
+      const total = Object.values(per).reduce((a, b) => a + b, 0);
+      return { rid, per, total: Math.round(total * 10) / 10 };
+    });
+    const sorted = sides.slice().sort((a, b) => b.total - a.total);
+    const diff = sides.length > 1 ? Math.round((sorted[0].total - sorted[1].total) * 10) / 10 : 0;
+    const weeksSince = after.length;
+    let verdict;
+    if (weeksSince < cfg.minWeeks) verdict = { kind: 'early', winnerRid: null };
+    else if (sorted[0].total < 1) verdict = { kind: 'none', winnerRid: null };
+    else if (diff < cfg.evenPoints || diff < sorted[0].total * cfg.evenShare) verdict = { kind: 'even', winnerRid: null };
+    else verdict = { kind: 'win', winnerRid: sorted[0].rid };
+    out[t.id] = { sides, diff, weeksSince, verdict };
+  }
+  return out;
 }
