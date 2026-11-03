@@ -75,4 +75,6 @@
 
 - Owner asked why Jordan Addison showed 0 pts in a 2021 trade: correct by the rule — 🔥Bitch🔥 got that 2023 1st in Oct 2021 but traded it on (May 2023, via Matt's Friend) before Love is in the Air used it on Addison (473 starting pts, all for them). Now explained on screen: picks traded on show "🔁 traded on before the draft" instead of 0.0; players/drafted picks that later left show "· traded away Mar 2023" / "· dropped Oct 2022" (journey events now record fromRid/toRid). MFFL Dynasty: 50 traded-on picks, 167 departures annotated.
 
+- **Reverse trade ideas** (owner asked): pick a player on another team (with nothing of yours picked) → 💡 "What you could offer": fair 1-/2-piece packages from your roster + picks, ranked by their weak spots, your depth ("You have depth at WR"), sell-high; warns "Careful: you're thin at RB" (unless it's the same position you're getting). Try it fills your side. Same filters (pieces/position/picks). New "🔎 Find a player on another team…" search in the Trade with card (works from Any team). Original direction unchanged.
+
 **Next:** owner tests; remaining history idea in docs/IDEAS.md (browse drafts); ESPN leagues when the owner follows up.

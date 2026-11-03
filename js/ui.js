@@ -276,8 +276,9 @@ function ideaFilters(t) {
 
 function ideasCard(ideas, t) {
   if (!ideas) {
-    return '<div class="card ideas"><h2>💡 Trade ideas</h2><div class="pmeta">Tap one or more of <b>your</b> players below to see players worth about the same, and fair trades that help both teams.</div></div>';
+    return '<div class="card ideas"><h2>💡 Trade ideas</h2><div class="pmeta">Tap one or more of <b>your</b> players to see what you could get for them, or pick a player on <b>another team</b> to see what you could offer for him.</div></div>';
   }
+  if (ideas.mode === 'offer') return offerCard(ideas, t);
   const val = b => fmtValue(b);
   const who = b => b.isPick
     ? '<span class="slot inline PICK">PICK</span> ' + esc(b.player.name) + (b.from ? ' <span class="pmeta">(' + esc(b.from) + '\'s)</span>' : '')
@@ -329,7 +330,10 @@ function renderTrade(t) {
   return '<div class="card"><h2>Trade with</h2><select id="trade-opp">' +
       '<option value="any"' + (t.state.opp === 'any' ? ' selected' : '') + '>Any team (search the whole league)</option>' +
       t.opponents.map(o => '<option value="' + o.roster_id + '"' + (o.roster_id === t.state.opp ? ' selected' : '') + '>' + esc(o.name) + '</option>').join('') +
-    '</select>' + (t.state.give.length || t.state.get.length ? '<button class="link" data-treset="picks">Clear picks</button>' : '') + '</div>' +
+    '</select>' +
+    '<input type="search" class="tfind" data-tfind placeholder="🔎 Find a player on another team…" autocomplete="off">' +
+    '<div id="tfind-results"></div>' +
+    (t.state.give.length || t.state.get.length ? '<button class="link" data-treset="picks">Clear picks</button>' : '') + '</div>' +
     '<div id="trade-dyn">' + renderTradeDynamic(t) + '</div>' +
     '<div class="card"><details class="tsettings"><summary>How values work · adjust</summary>' +
       (t.fpAvailable
@@ -651,4 +655,46 @@ function renderRecords(st) {
   html += list('📈 Most points in a season', r.seasonPoints.map(x => '<li class="' + youCls(x.team) + '"><b>' + f1(x.pf) + '</b> ' + esc(x.team.name) + ' <span class="pmeta">' + esc(x.season) + ' · ' + x.w + '-' + x.l + '</span></li>'));
   html += list('🥇 Best regular-season records', r.seasonRecord.map(x => '<li class="' + youCls(x.team) + '"><b>' + x.w + '-' + x.l + (x.t ? '-' + x.t : '') + '</b> ' + esc(x.team.name) + ' <span class="pmeta">' + esc(x.season) + ' · ' + f1(x.pf) + ' pts</span></li>'));
   return html + '<div class="pmeta small" style="margin-top:10px">Team names are each manager\'s current name. Your rows are highlighted.</div>';
+}
+
+// Reverse ideas: what you could offer for another team's player.
+function offerCard(ideas, t) {
+  const val = b => fmtValue(b);
+  const who = b => b.isPick
+    ? '<span class="slot inline PICK">PICK</span> ' + esc(b.player.name) + (b.from ? ' <span class="pmeta">(' + esc(b.from) + '\'s)</span>' : '')
+    : '<span class="slot inline ' + esc(b.player.pos) + '">' + esc(b.player.pos) + '</span> ' + esc(b.player.name);
+  let html = '<div class="card ideas"><h2>💡 What you could offer <span class="pmeta">· ' + esc(ideas.target.name) + ' · they want ' + ideas.V.toFixed(ideas.V % 1 ? 1 : 0) + ' in value</span></h2>' + ideaFilters(t);
+  const filtered = t.ideaFilter.size !== 'any' || t.ideaFilter.pos !== 'ANY' || (t.hasPicks && t.ideaFilter.picks !== 'any');
+  if (!ideas.ideas.length) {
+    html += '<div class="pmeta">' + (filtered ? 'Nothing on your roster matches these filters at a fair value. Try loosening them.'
+      : 'Nothing on your roster adds up to a fair 1- or 2-piece offer for this. Try picking a different player, or add one of theirs.') + '</div>';
+  }
+  ideas.ideas.forEach((idea, i) => {
+    html += '<div class="idea"><div class="idea-top"><div><div class="pmeta">You give</div>' +
+      '<div class="pname">' + idea.pkg.map(who).join(' + ') + '</div>' +
+      '<div class="pmeta">Value ' + idea.pkg.map(val).join(' + ') + (idea.pkg.length > 1 ? ' = ' + idea.value.toFixed(idea.value % 1 ? 1 : 0) : '') +
+        ' · ' + (idea.value >= ideas.V ? '+' : '−') + Math.round(idea.off * 100) + '% vs theirs</div></div>' +
+      '<button class="btn small-btn" data-ttry="idea:' + i + '">Try it</button></div>' +
+      (idea.reasons.length ? '<div class="reasons">' + [...new Set(idea.reasons)].map(r => '<span class="reason' + (r.startsWith('Careful') ? ' warn' : '') + '">' + esc(r) + '</span>').join('') + '</div>' : '') +
+    '</div>';
+  });
+  if (ideas.similar.length) {
+    html += '<details class="similar"><summary>Your players with similar value (' + ideas.similar.length + ')</summary>';
+    ideas.similar.forEach((x, i) => {
+      html += '<div class="sim"><div>' + (x.fills ? '⭐ ' : '') + who(x.b) + trendHtml(x.b) + '<div class="pmeta">value ' + val(x.b) + '</div></div>' +
+        '<button class="btn alt small-btn" data-ttry="sim:' + i + '">Try</button></div>';
+    });
+    html += '<div class="pmeta small">⭐ = a position where ' + esc(ideas.target.name) + ' is in the bottom half of the league.</div></details>';
+  }
+  return html + '<div class="pmeta small" style="margin-top:8px">Ranked by what they need, while keeping your own thin positions safe. Conversation starters, not guarantees.</div></div>';
+}
+
+// Search results for "Find a player on another team"
+function renderFindResults(matches, q) {
+  if (!q || q.length < 2) return '';
+  if (!matches.length) return '<div class="pmeta small" style="padding:6px 2px">No player on another team matches “' + esc(q) + '”.</div>';
+  return matches.map(m => '<button class="row pick tfind-row" data-tfindpick="' + m.rid + ':' + esc(m.b.player.id) + '">' +
+    '<div class="slot ' + esc(m.b.player.pos) + '">' + esc(m.b.player.pos) + '</div>' +
+    '<div><div class="pname">' + esc(m.b.player.name) + '</div><div class="pmeta">' + esc(m.team) + '</div></div>' +
+    '<div class="ppts">' + fmtValue(m.b) + '<div class="pmeta">value</div></div></button>').join('');
 }

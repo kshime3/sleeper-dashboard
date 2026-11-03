@@ -337,3 +337,6 @@ body.sheet-open { overflow: hidden; }
 .htotal.won { color: var(--good); }
 .hpts { float: right; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
 .hbecame .hpts { color: var(--muted); }
+.reason.warn { background: var(--warn-bg); color: var(--warn); }
+.tfind { width: 100%; margin-top: 8px; padding: 10px 12px; border-radius: 10px; background: var(--card-2); border: 1px solid var(--line); color: var(--text); font: inherit; }
+#tfind-results .tfind-row:first-child { border-top: 0; }

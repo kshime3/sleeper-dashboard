@@ -170,17 +170,29 @@ function buildTrade(league, d) {
   cmp.fp = usesFP(league, settings, app.fp) ? app.fp : null;
   cmp.anyTeam = !opp;
   // Trade ideas for the players you picked to give (all teams, not just the one selected above).
-  const ideas = d.trade.give.length ? tradeIdeas({
-    values, mine, giveIds: d.trade.give, filter: ideaFilterFor(league, Object.keys(picks).length > 0),
-    needs: teamNeeds(league, d.rosters, app.players, d.points),
-    others: others.map(o => ({ roster_id: o.roster_id, name: o.name, ids: o.roster.players.concat(picksOf(o.roster_id)) })),
-  }) : null;
+  const ideaFilter = ideaFilterFor(league, Object.keys(picks).length > 0);
+  let ideas = null;
+  if (d.trade.give.length) {
+    // You picked your own player(s): what could you get for them, from any team?
+    ideas = tradeIdeas({
+      values, mine, giveIds: d.trade.give, filter: ideaFilter,
+      needs: teamNeeds(league, d.rosters, app.players, d.points),
+      others: others.map(o => ({ roster_id: o.roster_id, name: o.name, ids: o.roster.players.concat(picksOf(o.roster_id)) })),
+    });
+  } else if (d.trade.get.length && opp) {
+    // You picked someone else's player(s): what could you offer for them?
+    ideas = offerIdeas({
+      values, myIds: mine.players.concat(picksOf(mine.roster_id)), getIds: d.trade.get, filter: ideaFilter,
+      target: { roster_id: opp.roster_id, name: opp.name }, myRid: mine.roster_id,
+      needs: teamNeeds(league, d.rosters, app.players, d.points),
+    });
+  }
   app.tradeIdeasNow = ideas;
   return {
     hasTeam, settings, values, state: d.trade, pos: app.tradePos, positions: leaguePositions(league), opponents: others, oppName: opp ? opp.name : '',
     myIds: mine.players.concat(picksOf(mine.roster_id)), oppIds: opp ? opp.roster.players.concat(picksOf(opp.roster_id)) : [],
     hasPicks: Object.keys(picks).length > 0,
-    cmp, ideas, ideaFilter: ideaFilterFor(league, Object.keys(picks).length > 0), fpAvailable: !!app.fp && leagueFormat(league) === 'dynasty',
+    cmp, ideas, ideaFilter, fpAvailable: !!app.fp && leagueFormat(league) === 'dynasty',
   };
 }
 
@@ -202,7 +214,9 @@ $('#view').addEventListener('click', e => {
     const [kind, i] = tryIt.dataset.ttry.split(':');
     const idea = kind === 'idea' ? app.tradeIdeasNow.ideas[+i] : app.tradeIdeasNow.similar[+i];
     if (!idea) return;
-    d.trade = { opp: idea.team.roster_id, give: d.trade.give.slice(), get: (idea.pkg || [idea.b]).map(b => b.player.id) };
+    const pieces = (idea.pkg || [idea.b]).map(b => b.player.id);
+    if (app.tradeIdeasNow.mode === 'offer') d.trade = { opp: d.trade.opp, give: pieces, get: d.trade.get.slice() }; // fills YOUR side
+    else d.trade = { opp: idea.team.roster_id, give: d.trade.give.slice(), get: pieces };
     showLeague().then(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
     return;
   }
@@ -345,6 +359,34 @@ $('#view').addEventListener('change', e => {
   app.ideaFilter[key] = e.target.value;
   Store.set('sd_idea_filter', app.ideaFilter);
   $('#trade-dyn').innerHTML = renderTradeDynamic(buildTrade(currentLeague(), app.leagueData[app.leagueId]));
+});
+
+// "Find a player on another team": search every other roster, tap to pick him.
+$('#view').addEventListener('input', e => {
+  if (!(e.target.dataset && 'tfind' in e.target.dataset)) return;
+  const league = currentLeague(), d = app.leagueData[app.leagueId];
+  const q = e.target.value.trim().toLowerCase();
+  let matches = [];
+  if (q.length >= 2 && d) {
+    const t = buildTrade(league, d);
+    for (const o of t.opponents || []) {
+      for (const id of o.roster.players || []) {
+        const b = t.values[id];
+        if (b && b.player.name.toLowerCase().includes(q)) matches.push({ rid: o.roster_id, team: o.name, b });
+      }
+    }
+    matches = matches.sort((a, b) => b.b.value - a.b.value).slice(0, CONFIG.trade.findResults);
+  }
+  $('#tfind-results').innerHTML = renderFindResults(matches, q);
+});
+
+$('#view').addEventListener('click', e => {
+  const row = e.target.closest('[data-tfindpick]');
+  if (!row) return;
+  const d = app.leagueData[app.leagueId];
+  const [rid, pid] = row.dataset.tfindpick.split(':');
+  d.trade = { opp: Number(rid), give: (d.trade && d.trade.give) || [], get: [pid] };
+  showLeague().then(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
 });
 
 // Changing the trade partner

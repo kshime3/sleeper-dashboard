@@ -349,3 +349,54 @@ function tradeIdeas(ctx) {
   }
   return { V, similar: similar.slice(0, cfg.showSimilar), ideas: picked };
 }
+
+// ---------- Reverse ideas: "what could I offer for this player?" ----------
+// You picked player(s) on ANOTHER team (and nothing of yours yet). Suggest fair 1- or 2-piece
+// packages from YOUR roster (and picks), ranked by what that team needs, avoiding your thin spots.
+// ctx: { values, myIds, target: { roster_id, name }, getIds, needs, myRid, filter }
+function offerIdeas(ctx) {
+  const { values, myIds, target, getIds, needs, myRid, filter } = ctx;
+  const cfg = CONFIG.trade.ideas;
+  const want = getIds.map(id => values[id]).filter(Boolean);
+  const V = want.reduce((a, b) => a + b.value, 0);
+  if (!want.length || V <= 0) return { mode: 'offer', V, similar: [], ideas: [], target };
+  const theirs = needs[target.roster_id] || { weak: {}, deep: {} };
+  const mineN = needs[myRid] || { weak: {}, deep: {} };
+  const wantPos = new Set(want.filter(b => !b.isPick).map(b => b.player.pos));
+  const off = v => Math.abs(v - V) / Math.max(v, V);
+
+  const pool = myIds.map(id => values[id]).filter(b => b && b.value > 0 && !getIds.includes(b.player.id))
+    .sort((a, b) => b.value - a.value).slice(0, cfg.poolSize * 2);
+
+  const similar = pool.filter(b => off(b.value) <= cfg.similarRange && ideaAllowed([b], filter))
+    .map(b => ({ team: target, b, off: off(b.value), fills: !b.isPick && theirs.weak[b.player.pos] }))
+    .sort((a, b) => a.off - b.off).slice(0, cfg.showSimilar);
+
+  const packages = pool.map(b => [b]);
+  for (let i = 0; i < pool.length; i++) for (let j = i + 1; j < pool.length; j++) packages.push([pool[i], pool[j]]);
+  const ideas = [];
+  for (const pkg of packages) {
+    if (!ideaAllowed(pkg, filter)) continue;
+    const value = pkg.reduce((a, b) => a + b.value, 0);
+    const o = off(value);
+    if (o > cfg.fairRange) continue;
+    if (pkg.length > 1 && pkg.some(b => b.value < V * cfg.minPieceShare)) continue;
+    let score = 1 - o / cfg.fairRange;
+    const reasons = [];
+    const seen = new Set();
+    for (const b of pkg) {
+      if (b.isPick) { score += 0.25; reasons.push('Draft pick: keeps your lineup intact'); continue; }
+      const pos = b.player.pos;
+      if (seen.has(pos)) continue;
+      seen.add(pos);
+      if (theirs.weak[pos]) { score += 1.5; reasons.push('They need ' + pos + ' (' + ordinal(theirs.weak[pos]) + ')'); }
+      if (mineN.deep[pos]) { score += 0.75; reasons.push('You have depth at ' + pos + ' (' + ordinal(mineN.deep[pos]) + ')'); }
+      else if (mineN.weak[pos] && !wantPos.has(pos)) { score -= 1.25; reasons.push('Careful: you\'re thin at ' + pos + ' (' + ordinal(mineN.weak[pos]) + ')'); }
+      if (trendTags(b).some(x => x.kind === 'hot')) { score += 0.5; reasons.push('Sell high: ' + b.player.name + ' is on a hot streak'); }
+    }
+    if (pkg.length === 2) score -= cfg.twoPiecePenalty;
+    ideas.push({ team: target, pkg, value, off: o, score, reasons });
+  }
+  ideas.sort((a, b) => b.score - a.score);
+  return { mode: 'offer', V, similar, ideas: ideas.slice(0, cfg.showIdeas), target };
+}

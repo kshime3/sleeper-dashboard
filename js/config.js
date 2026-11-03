@@ -29,6 +29,7 @@ const CONFIG = {
     youthBonusMax: 0.15,     // ...up to this much
     injuryCut: { Questionable: 0.05, Doubtful: 0.15, Out: 0.20, IR: 0.40, PUP: 0.40, Sus: 0.40, NA: 0.40, COV: 0.20, DNR: 0.40 },
     minGamesForReplacement: 3, // free agents need this many games to count as "replacement"
+    findResults: 8,            // "Find a player on another team": show this many matches
     ideas: {
       similarRange: 0.15,    // "similar value" = within 15%
       fairRange: 0.12,       // trade ideas: the two sides within 12% of each other
