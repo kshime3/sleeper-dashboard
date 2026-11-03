@@ -32,10 +32,23 @@ async function main() {
   const leagues = await getJSON(SLEEPER + '/user/' + user.user_id + '/leagues/nfl/' + season);
 
   // 1. Player list
-  const trimmed = trimPlayers(await getJSON(SLEEPER + '/players/nfl'));
+  const raw = await getJSON(SLEEPER + '/players/nfl');
+  const trimmed = trimPlayers(raw);
   const builtAt = Date.now();
   fs.mkdirSync(path.join(root, 'data'), { recursive: true });
   fs.writeFileSync(path.join(root, 'data/players.json'), JSON.stringify({ savedAt: builtAt, data: trimmed }));
+
+  // 1b. Names of everyone else who ever played a fantasy position (retired players etc.),
+  // so old trades in League history show names. Not tied to any one league.
+  const FANTASY = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF'];
+  const names = {};
+  for (const id in raw) {
+    const p = raw[id];
+    if (trimmed[id] || !FANTASY.includes(p.position)) continue;
+    const name = p.full_name || ((p.first_name || '') + ' ' + (p.last_name || '')).trim();
+    if (name) names[id] = [name, p.position];
+  }
+  fs.writeFileSync(path.join(root, 'data/names.json'), JSON.stringify(names));
 
   // 2. Points per league (season total, games, and each recent week)
   const weeks = recentWeeks(week, CONFIG.trade.recentWeeks);
@@ -61,7 +74,7 @@ async function main() {
   }
   fs.writeFileSync(path.join(root, 'data/stats.json'), JSON.stringify(out));
   const kb = f => Math.round(fs.statSync(path.join(root, f)).size / 1024) + ' KB';
-  console.log('Built week ' + week + ' (' + season + '): players.json ' + kb('data/players.json') + ', stats.json ' + kb('data/stats.json') + ' for ' + leagues.length + ' leagues.');
+  console.log('Built week ' + week + ' (' + season + '): players.json ' + kb('data/players.json') + ', names.json ' + kb('data/names.json') + ', stats.json ' + kb('data/stats.json') + ' for ' + leagues.length + ' leagues.');
 }
 
 main().catch(err => { console.error(err.message); process.exit(1); });

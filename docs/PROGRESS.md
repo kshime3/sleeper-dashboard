@@ -58,4 +58,7 @@
 - Owner tested tappable score cards: works. Explained the MFFL (keeper) trade value formula; owner chose to fix the "one big recent game" problem.
 - Fixed: recent form now counts in proportion to games played in the last 3 weeks (byes don't count as missed). E.g. Tyler Warren (1 of 3 games) recent weight 50% → 17%, value 7.3 → 4.2. "why?" explains it. Still open (offered, not chosen yet): rest-of-season value (byes/playoff weeks), keeper value for MFFL (suggested for the offseason).
 
-**Next:** owner tests; ESPN leagues when the owner follows up.
+- Explored league history (owner asked): Sleeper links every past season; MFFL Dynasty has 8 seasons (2019–2026), 93 trades, ~1,800 transactions, all drafts.
+- Built **League history** at the bottom of Standings (owner chose: trades + transactions first). "Load history" button; Trades / Transactions views; filters for season, team (by manager, across seasons), player search, transaction type, failed waiver bids; "Show more". First load ~4 s (152 small requests, 4 seasons at a time); after that finished seasons come from the phone (~0.3 s). Old/retired player names come from new data/names.json (built hourly, all players, friend-friendly). Fixed: tapping Load during the open-time refresh lost the result.
+
+**Next:** owner tests history; later history ideas in docs/IDEAS.md; ESPN leagues when the owner follows up.

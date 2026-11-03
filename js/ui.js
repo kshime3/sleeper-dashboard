@@ -490,3 +490,61 @@ function renderPlayerSheet(pd) {
   }
   return html;
 }
+
+// ---------- League history (bottom of Standings) ----------
+function fmtDate(ms) {
+  return ms ? new Date(ms).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+}
+
+function histPlayer(p) {
+  return '<span class="hp" data-pid="' + esc(p.id) + '">' + (p.pos ? '<span class="slot inline ' + esc(p.pos) + '">' + esc(p.pos) + '</span> ' : '') + esc(p.name) + '</span>';
+}
+
+function renderHistoryList(h, st) {
+  const list = filterHistory(h, st.view, st.f);
+  const shown = list.slice(0, st.limit);
+  let html = '<div class="pmeta small hcount">' + list.length + (st.view === 'trades' ? ' trade' : ' transaction') + (list.length === 1 ? '' : 's') + '</div>';
+  if (!list.length) html += '<div class="pmeta">Nothing matches these filters.</div>';
+  for (const x of shown) {
+    const when = fmtDate(x.date) + ' · ' + x.season + (x.week ? ' wk ' + x.week : ' offseason');
+    if (st.view === 'trades') {
+      html += '<div class="hitem"><div class="pmeta small">🔁 ' + esc(when) + '</div>' + x.sides.map(sd =>
+        '<div class="hside"><div class="hteam">' + esc(sd.team.name) + ' got</div><div>' +
+          (sd.players.map(histPlayer).concat(sd.picks.map(pk => '<span class="hp"><span class="slot inline PICK">PICK</span> ' + esc(pk) + '</span>'))
+            .concat(sd.faab ? ['<span class="hp">💰 $' + sd.faab + ' FAAB</span>'] : []).join('') || '<span class="pmeta">nothing</span>') +
+        '</div></div>').join('') + '</div>';
+    } else {
+      const icon = x.type === 'waiver' ? (x.status === 'complete' ? '📥' : '❌') : x.type === 'free_agent' ? '🆓' : '🛠️';
+      const what = x.type === 'waiver' ? (x.status === 'complete' ? 'Waiver claim' : 'Failed waiver bid') : x.type === 'free_agent' ? 'Free agent' : 'Commissioner';
+      html += '<div class="hitem' + (x.status !== 'complete' ? ' failed' : '') + '"><div class="pmeta small">' + icon + ' ' + esc(what) + (x.bid != null && x.type === 'waiver' ? ' · $' + x.bid : '') + ' · ' + esc(when) + '</div>' +
+        '<div class="hteam">' + esc(x.team.name) + '</div>' +
+        (x.adds.length ? '<div class="hmove"><span class="lead">+ </span>' + x.adds.map(histPlayer).join('') + '</div>' : '') +
+        (x.drops.length ? '<div class="hmove"><span class="trail">− </span>' + x.drops.map(histPlayer).join('') + '</div>' : '') + '</div>';
+    }
+  }
+  if (list.length > shown.length) html += '<button class="btn alt small-btn hmore" data-hmore>Show more (' + (list.length - shown.length) + ' left)</button>';
+  return html;
+}
+
+function renderHistory(st) {
+  let html = '<div class="card" id="history"><h2>📜 League history</h2>';
+  if (!st.hist) {
+    return html + '<div class="pmeta">Every trade, waiver claim and free-agent move in this league, back to its first season on Sleeper.</div>' +
+      '<p><button class="btn" data-hload' + (st.loading ? ' disabled' : '') + '>' + (st.loading ? esc(st.loading) : 'Load history') + '</button></p>' +
+      (st.error ? '<div class="pmeta trail">' + esc(st.error) + '</div>' : '') + '</div>';
+  }
+  const h = st.hist;
+  const f = st.f;
+  const sel = (key, opts) => '<select data-hfilter="' + key + '">' + opts.map(([v, t]) => '<option value="' + esc(v) + '"' + (String(f[key]) === String(v) ? ' selected' : '') + '>' + esc(t) + '</option>').join('') + '</select>';
+  html += '<div class="pmeta small">' + h.seasons.length + ' seasons (' + h.first + '–' + h.last + ') · ' + h.trades.length + ' trades · ' + h.moves.filter(m => m.status === 'complete').length + ' transactions</div>' +
+    '<div class="seg"><button data-hview="trades" class="' + (st.view === 'trades' ? 'on' : '') + '">🔁 Trades</button>' +
+    '<button data-hview="moves" class="' + (st.view === 'moves' ? 'on' : '') + '">📥 Transactions</button></div>' +
+    '<div class="hfilters">' +
+      sel('season', [['all', 'All seasons']].concat(h.seasons.map(s => [s, s]))) +
+      sel('team', [['all', 'All teams']].concat(Object.entries(h.managers).sort((a, b) => a[1].localeCompare(b[1])).map(([id, n]) => [id, n]))) +
+      (st.view === 'moves' ? sel('type', [['all', 'All types'], ['waiver', 'Waiver claims'], ['free_agent', 'Free agents'], ['commissioner', 'Commissioner']]) : '') +
+      '<input type="search" data-hfilter="q" placeholder="Search a player…" value="' + esc(f.q) + '">' +
+      (st.view === 'moves' ? '<label class="hcheck"><input type="checkbox" data-hfilter="failed"' + (f.failed ? ' checked' : '') + '> Show failed waiver bids</label>' : '') +
+    '</div><div id="hist-list">' + renderHistoryList(h, st) + '</div>';
+  return html + '</div>';
+}

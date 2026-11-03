@@ -257,3 +257,18 @@ body.sheet-open { overflow: hidden; }
 
 .bgo { color: var(--muted); font-size: 22px; line-height: 1; }
 .board:active { border-color: var(--accent); }
+
+/* League history */
+.hfilters { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; }
+.hfilters select, .hfilters input[type=search] { padding: 8px; font-size: 14px; border-radius: 10px; background: var(--card-2); border: 1px solid var(--line); color: var(--text); width: 100%; }
+.hfilters input[type=search] { grid-column: 1 / -1; }
+.hcheck { grid-column: 1 / -1; font-size: 13px; color: var(--muted); display: flex; gap: 6px; align-items: center; }
+.hcount { margin-bottom: 4px; }
+.hitem { border-top: 1px solid var(--line); padding: 9px 0; }
+.hitem.failed { opacity: .6; }
+.hside { display: grid; grid-template-columns: 38% 1fr; gap: 8px; margin-top: 5px; }
+.hteam { font-weight: 600; font-size: 14px; overflow-wrap: anywhere; }
+.hp { display: inline-block; margin: 0 8px 3px 0; font-size: 14px; }
+.hp[data-pid] { cursor: pointer; }
+.hmove { margin-top: 3px; }
+.hmore { width: 100%; margin-top: 8px; }

@@ -29,6 +29,7 @@ The owner is not very technical. Same working style as their Chained Dice projec
 
 - **Saved copies / offline:** every download goes through `cachedJSON` (js/sleeper.js), which also stores it in Cache Storage (`sd-data-v1`, not localStorage). On open, `reloadAll` draws once from saved copies (`NET.mode = 'cache'`, instant), then loads live and redraws; with no signal the saved copy is used and the status says Offline. Anything started in the cache pass must finish before the live pass (allSettled), or it will run in network mode.
 
+- **League history:** `/league/<id>` (previous_league_id chain), `/league/<id>/users|rosters|transactions/<round 0-18>` per season. MFFL Dynasty: 8 seasons (2019–2026), 93 trades, 1,834 transactions. History state lives in `app.history[leagueId]` (not leagueData) so refreshes don't lose it. Playwright may report each request twice once the service worker is active; count real fetches in the page instead.
 - **ESPN scoreboard** `site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?seasontype=2&week=<w>&dates=<season>` — unofficial, free, CORS allowed. Team code fix: ESPN WSH = Sleeper WAS. ESPN returns 403 to headless browsers: Playwright tests must set a phone userAgent AND `extraHTTPHeaders: {'sec-ch-ua': '"Chromium";v="140", "Google Chrome";v="140"'}`. Failures are quiet (don't mark the app Offline).
 - **Live scores:** while any game is live and My Team or Game Day is open, `refreshLive` (main.js) re-downloads matchups/rosters (this league, or every league on Game Day) + the scoreboard every `CONFIG.liveRefreshSeconds`; paused in the background.
 
@@ -56,6 +57,7 @@ js/myteam.js          logic: My Team (lineup, matchup, guillotine status, flags,
 js/waivers.js         logic: teamStrengths (every team's rank at each position, shared with Trade) and Waiver Wire (free agents, trending adds, weak spots, upgrade stars, FAAB)
 js/trade.js           logic: Trade Analyzer (value = blended pts/g − best free agent at the position, × age × injury; settings per league; FantasyPros values + picks in dynasty) and Trade ideas (similar value; fair 1-/2-piece packages ranked by mutual need via teamNeeds; hot/cold tags)
 js/standings.js       logic: Standings (guillotine: survivors first) and Weekly Recap (top/low score, blowout, closest, player of the week, best bench, most left on bench) + chat text
+js/history.js         logic: League history (follows previous_league_id back through every season; trades + transactions; finished seasons saved on the phone for good)
 js/gameday.js         logic: Game Day tab (score card per league, every player you own once, grouped Playing now / Still to play / Done / Not playing)
 js/player.js          logic: player details panel (who owns him in each league, points, game, injury)
 js/ui.js              display: draws each tab
@@ -66,6 +68,6 @@ docs/IDEAS.md         parked ideas (ESPN leagues, sharing with friends)
 data/dynasty-values.json   FantasyPros dynasty values (written by the updater, don't edit by hand)
 tools/update-dynasty.js    the updater (Node, no installs needed)
 .github/workflows/dynasty-values.yml   runs the updater daily on GitHub
-tools/build-data.js        builds data/players.json + data/stats.json (not in git; built on GitHub)
+tools/build-data.js        builds data/players.json + data/stats.json + data/names.json (retired players' names, for League history; not in git; built on GitHub)
 .github/workflows/publish.yml          publishes the site hourly + on every push, after build-data
 ```

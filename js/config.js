@@ -45,6 +45,14 @@ const CONFIG = {
     },
   },
 
+  // League history (Standings tab)
+  history: {
+    maxSeasons: 15,   // follow a league back this many seasons at most
+    maxRounds: 18,    // Sleeper stores transactions per week ("round"); check weeks 0-18
+    pageSize: 40,     // show this many trades/transactions, then "Show more"
+    seasonsAtOnce: 4, // download this many seasons at the same time (first load only)
+  },
+
   // Your notes about each league (matched by league name). Sleeper's own settings
   // don't always say this clearly, so we write it down.
   leagueNotes: {

@@ -80,7 +80,7 @@ async function showLeague() {
       }
       const recap = rw > 0 ? weeklyRecap({ league, rosters: d.rosters, users: d.users, matchups: d.recapMatchups[rw] || [], players: app.players, week: rw }) : { empty: true, week: rw };
       d.recapCache = { recap, league };
-      view.innerHTML = renderStandings(st, recap, league, weeks, rw, week);
+      view.innerHTML = renderStandings(st, recap, league, weeks, rw, week) + renderHistory(histFor(league.league_id));
       return;
     }
 
@@ -218,6 +218,66 @@ $('#view').addEventListener('click', e => {
     else Store.set('sd_trade_' + app.leagueId, null);
     showLeague();
   }
+});
+
+// ---------- League history (bottom of Standings) ----------
+// Kept per league outside leagueData, so refreshes (saved copy -> live data) don't lose it mid-load.
+app.history = {};
+function histFor(id) {
+  return app.history[id] = app.history[id] || {
+    hist: null, view: 'trades', loading: '', error: '', limit: CONFIG.history.pageSize,
+    f: { season: 'all', team: 'all', q: '', type: 'all', failed: false },
+  };
+}
+
+function redrawHistory(listOnly) {
+  if (app.tab !== 'standings') return;
+  const h = histFor(app.leagueId);
+  if (listOnly && h.hist && $('#hist-list')) $('#hist-list').innerHTML = renderHistoryList(h.hist, h);
+  else if ($('#history')) $('#history').outerHTML = renderHistory(h);
+}
+
+$('#view').addEventListener('click', async e => {
+  if (app.tab !== 'standings') return;
+  const h = histFor(app.leagueId);
+  if (e.target.closest('[data-hload]')) {
+    if (h.loading) return;
+    const league = currentLeague(), id = league.league_id;
+    h.loading = 'Loading…'; h.error = ''; redrawHistory();
+    try {
+      const raw = await loadHistory(league, (n, total, season) => {
+        h.loading = 'Loading seasons… ' + n + ' of ' + total + ' done';
+        if (app.leagueId === id) redrawHistory();
+      });
+      h.hist = buildHistory(raw, league, app.players);
+    } catch (err) {
+      h.error = 'Couldn\'t load the history: ' + err.message;
+    }
+    h.loading = '';
+    if (app.leagueId === id) redrawHistory();
+    return;
+  }
+  const v = e.target.closest('[data-hview]');
+  if (v) { h.view = v.dataset.hview; h.limit = CONFIG.history.pageSize; redrawHistory(); return; }
+  if (e.target.closest('[data-hmore]')) { h.limit += CONFIG.history.pageSize; redrawHistory(true); }
+});
+
+$('#view').addEventListener('change', e => {
+  const key = e.target.dataset && e.target.dataset.hfilter;
+  if (!key || key === 'q' || app.tab !== 'standings') return;
+  const h = histFor(app.leagueId);
+  h.f[key] = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+  h.limit = CONFIG.history.pageSize;
+  redrawHistory(true);
+});
+
+// Typing in the search box: redraw just the list so the keyboard stays open.
+$('#view').addEventListener('input', e => {
+  if (!(e.target.dataset && e.target.dataset.hfilter === 'q')) return;
+  const h = histFor(app.leagueId);
+  h.f.q = e.target.value;
+  h.limit = CONFIG.history.pageSize;
+  redrawHistory(true);
 });
 
 // Recap: pick a week, copy or share the text.
