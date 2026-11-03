@@ -134,7 +134,7 @@ details[open] summary { margin-bottom: 4px; }
 .seg { display: grid; grid-template-columns: 1fr 1fr; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 3px; margin-bottom: 12px; }
 .seg button { border: 0; background: none; padding: 8px 4px; border-radius: 8px; cursor: pointer; font-size: 14px; color: var(--muted); }
 .seg button.on { background: var(--card-2); color: var(--text); font-weight: 600; }
-.wrow.fits { background: linear-gradient(90deg, rgba(25, 194, 181, .13), transparent 75%); }
+.wrow.fits { background: linear-gradient(90deg, var(--accent-bg), transparent 75%); }
 .fit { font-size: 12px; color: var(--accent); margin-top: 2px; }
 .wrow .ppts { font-size: 13px; }
 
@@ -155,7 +155,7 @@ details[open] summary { margin-bottom: 4px; }
 .why summary { text-transform: none; letter-spacing: 0; font-size: 13px; color: var(--accent); margin-top: 4px; }
 .why summary b { color: var(--text); }
 .row.pick { width: 100%; background: none; border: 0; border-top: 1px solid var(--line); text-align: left; cursor: pointer; padding: 8px 4px; }
-.row.pick.on { background: rgba(25, 194, 181, .15); border-radius: 8px; }
+.row.pick.on { background: var(--accent-bg); border-radius: 8px; }
 .slider { display: block; margin: 12px 0; }
 .slider > div:first-child { display: flex; justify-content: space-between; }
 .slider input { width: 100%; accent-color: var(--accent); }
@@ -173,7 +173,7 @@ details[open] summary { margin-bottom: 4px; }
 .stand td:first-child { width: 22px; color: var(--muted); }
 .stand .num, .stand th:nth-child(n+3) { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .stand .tname { font-weight: 600; overflow-wrap: break-word; word-break: break-word; }
-.stand tr.me td { background: rgba(25, 194, 181, .14); }
+.stand tr.me td { background: var(--accent-bg); }
 .stand tr.me .tname { color: var(--accent); }
 .stand tr.out td { opacity: .5; }
 .stand tr.cutline td { border-bottom: 2px dashed var(--accent); }
@@ -244,7 +244,7 @@ body.sheet-open { overflow: hidden; }
 .idea:first-of-type { border-top: 0; }
 .idea-top { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; }
 .reasons { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
-.reason { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: rgba(25, 194, 181, .14); color: var(--accent); }
+.reason { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: var(--accent-bg); color: var(--accent); }
 .similar summary { text-transform: none; letter-spacing: 0; margin-top: 6px; }
 .sim { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; padding: 6px 0; border-top: 1px solid var(--line); }
 .ttag { display: inline-block; font-size: 10px; font-weight: 700; border-radius: 5px; padding: 1px 5px; margin-left: 4px; vertical-align: 1px; background: var(--card-2); }
@@ -340,3 +340,140 @@ body.sheet-open { overflow: hidden; }
 .reason.warn { background: var(--warn-bg); color: var(--warn); }
 .tfind { width: 100%; margin-top: 8px; padding: 10px 12px; border-radius: 10px; background: var(--card-2); border: 1px solid var(--line); color: var(--text); font: inherit; }
 #tfind-results .tfind-row:first-child { border-top: 0; }
+
+/* =====================================================================
+   🏈 FOOTBALL THEME — night game on the field (dark), day game (light)
+   Inspired by the owner's Illini Grades site: bold scoreboard font,
+   glowing LED numbers, themed background, playful copy.
+   ===================================================================== */
+:root {
+  --bg: #0a1d11; --card: #11261a; --card-2: #183323; --line: #24432f;
+  --text: #eef6ef; --muted: #9bb8a3; --accent: #ffc72c; --accent-ink: #1d1500;
+  --accent-bg: rgba(255, 199, 44, .14);
+  --good: #4ade80; --warn: #ffb020; --bad: #ff5d5d;
+  --warn-bg: rgba(255, 176, 32, .15); --bad-bg: rgba(255, 93, 93, .15);
+  --turf-1: #0c2214; --turf-2: #0a1d11; --chalk: rgba(255, 255, 255, .07);
+  --stadium: linear-gradient(180deg, #050f08 0%, #0b2214 100%);
+  --led: #050a06;
+  --display: "Bebas Neue", Impact, "Arial Narrow", sans-serif;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #bfe0b4; --card: #ffffff; --card-2: #f1f6ee; --line: #d6e4d0;
+    --text: #13241a; --muted: #557062; --accent: #ffc72c; --accent-ink: #1d1500;
+    --accent-bg: rgba(255, 199, 44, .22);
+    --good: #138a43; --warn: #a86a00; --bad: #c7323a;
+    --warn-bg: rgba(255, 176, 32, .18); --bad-bg: rgba(220, 60, 60, .12);
+    --turf-1: #c7e6bb; --turf-2: #b6dba8; --chalk: rgba(255, 255, 255, .55);
+    --stadium: linear-gradient(180deg, #0b2214 0%, #164a2a 100%);
+    --led: #050a06;
+    color-scheme: light;
+  }
+}
+
+/* The field: mowed stripes, a chalk yard line every 5 yards, hash marks down both sides */
+body {
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(90deg, transparent 0 18px, var(--chalk) 18px 30px, transparent 30px calc(100% - 30px), var(--chalk) calc(100% - 30px) calc(100% - 18px), transparent calc(100% - 18px)),
+    repeating-linear-gradient(180deg, var(--chalk) 0 2px, transparent 2px 120px),
+    repeating-linear-gradient(180deg, var(--turf-1) 0 120px, var(--turf-2) 120px 240px);
+  background-size: 100% 24px, 100% 240px, 100% 240px;
+}
+@media (prefers-color-scheme: light) { body { background-size: 100% 24px, 100% 240px, 100% 240px; } }
+
+/* Stadium header */
+.top {
+  background: var(--stadium); color: #fff;
+  border-bottom: 3px solid var(--accent);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, .35);
+}
+.brand { display: flex; align-items: center; gap: 8px; }
+h1 {
+  font-family: var(--display); font-weight: 400; font-size: 30px; letter-spacing: 1.5px; line-height: 1;
+  margin: 0; color: #fff; text-shadow: 2px 2px 0 rgba(0, 0, 0, .45), 0 0 14px rgba(255, 199, 44, .25);
+}
+h1 .hq { color: var(--accent); }
+.ball { font-size: 26px; display: inline-block; animation: toss 2.4s ease-in-out infinite; transform-origin: 50% 60%; }
+@keyframes toss {
+  0%, 100% { transform: translateY(0) rotate(-18deg); }
+  50% { transform: translateY(-5px) rotate(14deg); }
+}
+@media (prefers-reduced-motion: reduce) { .ball { animation: none; } }
+.top .icon-btn { background: rgba(255, 255, 255, .08); border-color: rgba(255, 255, 255, .18); color: #fff; }
+.top select { background: rgba(255, 255, 255, .08); border-color: rgba(255, 255, 255, .2); color: #fff; margin-top: 8px; }
+.top select option { color: #111; }
+
+/* Jumbotron: week + how you're doing across leagues */
+.jumbo {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  margin-top: 8px; padding: 6px 10px; border-radius: 10px; cursor: pointer;
+  background: var(--led); border: 2px solid #2a2a2a;
+  box-shadow: inset 0 0 18px rgba(255, 199, 44, .18);
+  font-family: var(--display); letter-spacing: 1.5px; font-size: 18px; line-height: 1.1;
+  color: var(--accent); text-shadow: 0 0 8px rgba(255, 199, 44, .75);
+  white-space: nowrap; overflow: hidden;
+}
+.jumbo:empty { display: none; }
+.jumbo .jw { color: #fff; text-shadow: 0 0 8px rgba(255, 255, 255, .5); }
+.jumbo .jgood { color: #5cff9a; text-shadow: 0 0 8px rgba(92, 255, 154, .7); }
+.jumbo .jbad { color: #ff7070; text-shadow: 0 0 8px rgba(255, 112, 112, .7); }
+.jumbo .jlive { animation: blink 1.4s steps(2, start) infinite; }
+@keyframes blink { to { visibility: hidden; } }
+
+/* Cards and headings */
+.card { border-radius: 16px; box-shadow: 0 6px 16px rgba(0, 0, 0, .25); }
+@media (prefers-color-scheme: light) { .card { box-shadow: 0 6px 16px rgba(10, 40, 20, .12); border-color: transparent; } }
+.card h2, .rec-h, .sheet-h {
+  font-family: var(--display); font-weight: 400; font-size: 21px; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--text);
+}
+.card h2::before { content: "▸ "; color: var(--accent); }
+.card h2 .pmeta, .card h2 small { font-family: system-ui, sans-serif; letter-spacing: 0; text-transform: none; }
+.sheet-name, .verdict { font-family: var(--display); font-weight: 400; letter-spacing: 1px; }
+.sheet-name { font-size: 26px; }
+.verdict { font-size: 28px; }
+
+/* LED scoreboard numbers */
+.score .pts, .bme b, .lb-pts {
+  font-family: var(--display); font-weight: 400; font-size: 44px; letter-spacing: 1px; line-height: 1;
+}
+.score .pts.lead, .bme b.lead { color: var(--good); text-shadow: 0 0 12px rgba(74, 222, 128, .45); }
+.score .pts.trail, .bme b.trail { color: var(--bad); text-shadow: 0 0 12px rgba(255, 93, 93, .4); }
+.score .vs { font-family: var(--display); font-size: 22px; color: var(--accent); }
+.ppts { font-family: var(--display); font-weight: 400; font-size: 22px; letter-spacing: .5px; }
+.ppts .pmeta { font-family: system-ui, sans-serif; font-size: 11px; letter-spacing: 0; }
+
+/* Buttons and chips in goalpost gold */
+.btn { background: var(--accent); color: var(--accent-ink); font-weight: 700; box-shadow: 0 3px 0 rgba(0, 0, 0, .25); }
+.btn:active { transform: translateY(1px); box-shadow: none; }
+.btn.alt { background: var(--card-2); color: var(--text); }
+.fchip.on, .seg button.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.link, .credit a, .tsettings a, .status a { color: var(--accent); }
+@media (prefers-color-scheme: light) {
+  .link, .credit a, .tsettings a, .status a, .lead, .fit, .jstep.now, .rec-list li.you, .reason, .hbecame { color: #8a5d00; }
+  .lead { color: var(--good); }
+}
+
+/* Bottom tab bar: sideline */
+.tabs { background: #06130b; border-top: 2px solid var(--accent); }
+.tabs button { color: #9bb8a3; }
+.tabs button.active { color: var(--accent); }
+.tabs button.active span { transform: scale(1.12); }
+.tabs button span { transition: transform .15s; }
+
+/* Smooth fade when a tab draws */
+#view > * { animation: fadeup .22s ease both; }
+@keyframes fadeup { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { #view > * { animation: none; } }
+
+/* Status line on the field */
+.status { color: var(--muted); }
+.chalk-msg { font-family: var(--display); font-size: 24px; letter-spacing: 1px; text-align: center; color: var(--text); padding: 28px 0; }
+.chalk-msg .sub { display: block; font-family: system-ui, sans-serif; font-size: 13px; letter-spacing: 0; color: var(--muted); margin-top: 4px; }
+.jumbo { justify-content: center; gap: 6px; }
+.jumbo > span { flex: none; }
+@media (prefers-color-scheme: light) {
+  .score .vs, .card h2::before { color: #a86a00; }
+}

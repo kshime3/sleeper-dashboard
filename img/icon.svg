@@ -1,8 +1,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="0" fill="#101722"/>
+  <!-- turf with mowed stripes and chalk yard lines -->
+  <rect width="512" height="512" fill="#0b2214"/>
+  <g fill="#0f2c1a"><rect y="0" width="512" height="64"/><rect y="128" width="512" height="64"/><rect y="256" width="512" height="64"/><rect y="384" width="512" height="64"/></g>
+  <g stroke="#ffffff" stroke-opacity=".22" stroke-width="6"><line x1="0" y1="64" x2="512" y2="64"/><line x1="0" y1="192" x2="512" y2="192"/><line x1="0" y1="320" x2="512" y2="320"/><line x1="0" y1="448" x2="512" y2="448"/></g>
+  <!-- the football -->
   <g transform="rotate(-35 256 256)">
-    <ellipse cx="256" cy="256" rx="190" ry="118" fill="#19c2b5"/>
-    <path d="M140 256h232" stroke="#101722" stroke-width="16" stroke-linecap="round"/>
-    <path d="M196 226v60M236 226v60M276 226v60M316 226v60" stroke="#101722" stroke-width="14" stroke-linecap="round"/>
+    <ellipse cx="256" cy="256" rx="188" ry="114" fill="#8b4a22" stroke="#3b1c0b" stroke-width="10"/>
+    <path d="M118 210 Q256 170 394 210" stroke="#ffffff" stroke-width="12" fill="none" opacity=".9"/>
+    <path d="M118 302 Q256 342 394 302" stroke="#ffffff" stroke-width="12" fill="none" opacity=".9"/>
+    <line x1="176" y1="256" x2="336" y2="256" stroke="#ffffff" stroke-width="12" stroke-linecap="round"/>
+    <g stroke="#ffffff" stroke-width="11" stroke-linecap="round">
+      <line x1="200" y1="234" x2="200" y2="278"/><line x1="232" y1="234" x2="232" y2="278"/>
+      <line x1="264" y1="234" x2="264" y2="278"/><line x1="296" y1="234" x2="296" y2="278"/>
+    </g>
   </g>
+  <!-- goalpost-gold corner stripe -->
+  <rect x="0" y="488" width="512" height="24" fill="#ffc72c"/>
 </svg>

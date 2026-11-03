@@ -70,7 +70,7 @@ function renderMyTeam(t, league) {
   // 2. Lineup alerts
   html += '<div class="card"><h2>Lineup check</h2>';
   if (!t.alerts.length) {
-    html += '<div class="all-good">✓ No empty, injured or bye-week starters.</div>';
+    html += '<div class="all-good">✓ Clean pocket — no empty, injured or bye-week starters.</div>';
   } else {
     for (const a of t.alerts) {
       html += '<div class="alert ' + a.level + '">' + (a.level === 'bad' ? '⛔ ' : a.level === 'locked' ? '🔒 ' : '⚠️ ') + esc(a.text) +
@@ -98,9 +98,14 @@ function renderComingSoon(name) {
   return '<div class="card center"><div class="pname">' + esc(name) + '</div><div class="pmeta">Coming next — we\'re building one section at a time.</div></div>';
 }
 
+// A big scoreboard-style message (loading screens etc.)
+function chalkMsg(title, sub) {
+  return '<p class="chalk-msg">' + esc(title) + (sub ? '<span class="sub">' + esc(sub) + '</span>' : '') + '</p>';
+}
+
 function renderError(msg) {
-  return '<div class="card error"><div class="pname">Something went wrong</div><div class="pmeta">' + esc(msg) +
-    '</div><p><button class="btn" onclick="location.reload()">Try again</button></p></div>';
+  return '<div class="card error"><div class="chalk-msg" style="padding:8px 0">🏈 Fumble!<span class="sub">' + esc(msg) + '</span></div>' +
+    '<p class="center"><button class="btn" onclick="location.reload()">Run it back</button></p></div>';
 }
 
 function fmtCount(n) {
@@ -372,7 +377,7 @@ function renderStandings(st, recap, league, weeks, recapWeek, currentWk) {
   html += '<div class="card"><h2>Weekly recap</h2>' +
     '<select id="recap-week">' + weeks.map(w => '<option value="' + w + '"' + (w === recapWeek ? ' selected' : '') + '>Week ' + w + (w === currentWk ? ' (in progress)' : '') + '</option>').join('') + '</select>';
   if (!recap) {
-    html += '<p class="muted center">Loading…</p>';
+    html += '<p class="muted center">📼 Pulling the game film…</p>';
   } else if (recap.empty) {
     html += '<p class="pmeta">No games found for week ' + recap.week + '.</p>';
   } else {

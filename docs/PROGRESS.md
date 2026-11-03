@@ -77,4 +77,6 @@
 
 - **Reverse trade ideas** (owner asked): pick a player on another team (with nothing of yours picked) → 💡 "What you could offer": fair 1-/2-piece packages from your roster + picks, ranked by their weak spots, your depth ("You have depth at WR"), sell-high; warns "Careful: you're thin at RB" (unless it's the same position you're getting). Try it fills your side. Same filters (pieces/position/picks). New "🔎 Find a player on another team…" search in the Trade with card (works from Any team). Original direction unchanged.
 
-**Next:** owner tests; remaining history idea in docs/IDEAS.md (browse drafts); ESPN leagues when the owner follows up.
+- **Football theme** (owner asked: "more fun and football", inspired by their Illini Grades site): turf-stripe background with chalk yard lines and hash marks; stadium header "🏈 FANTASY HQ" in Bebas Neue (Google Fonts) with a tossing football; glowing LED **jumbotron** (week · UP n · DOWN n across leagues · blinking LIVE; tap → Game Day; loads all leagues quietly after the live pass); goalpost-gold accent (buttons, active tab, chips); LED scoreboard numbers; Bebas section headings with ▸; fade-in tabs; football wording (Huddling up…, Reviewing the tape…, Fumble!/Run it back, Clean pocket). Day mode (light phones) = sunny field with white cards. New icon: football on turf. App name unchanged.
+
+**Next:** owner tests the theme; remaining history idea in docs/IDEAS.md (browse drafts); ESPN leagues when the owner follows up.

@@ -4,23 +4,28 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Sleeper Dashboard</title>
-  <link rel="icon" type="image/svg+xml" href="img/icon.svg?v=20261103l">
-  <link rel="apple-touch-icon" href="img/icon-180.png?v=20261103l">
+  <link rel="icon" type="image/svg+xml" href="img/icon.svg?v=20261103n">
+  <link rel="apple-touch-icon" href="img/icon-180.png?v=20261103n">
   <link rel="manifest" href="manifest.webmanifest">
-  <meta name="theme-color" content="#101722">
-  <link rel="stylesheet" href="css/style.css?v=20261103l">
+  <meta name="theme-color" content="#050f08">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css?v=20261103n">
 </head>
 <body>
   <header class="top">
     <div class="top-row">
-      <h1>Sleeper Dashboard</h1>
+      <div class="brand"><span class="ball" aria-hidden="true">🏈</span><h1>FANTASY <span class="hq">HQ</span></h1></div>
       <button id="refresh" class="icon-btn" aria-label="Reload data" title="Reload data">⟳</button>
     </div>
+    <!-- Jumbotron: the week and how you're doing across your leagues (tap = Game Day) -->
+    <div id="jumbo" class="jumbo" role="button" aria-label="Open Game Day"></div>
     <select id="league-picker" aria-label="Choose a league"></select>
   </header>
 
   <main id="view" aria-live="polite">
-    <p class="muted center">Loading your leagues…</p>
+    <p class="chalk-msg">🏈 Huddling up…<span class="sub">Loading your leagues</span></p>
   </main>
 
   <footer id="status" class="status"></footer>
@@ -39,18 +44,18 @@
     <button data-tab="standings"><span>🏆</span>Standings</button>
   </nav>
 
-  <script src="js/config.js?v=20261103l"></script>
-  <script src="js/sleeper.js?v=20261103l"></script>
-  <script src="js/stats.js?v=20261103l"></script>
-  <script src="js/games.js?v=20261103l"></script>
-  <script src="js/myteam.js?v=20261103l"></script>
-  <script src="js/waivers.js?v=20261103l"></script>
-  <script src="js/trade.js?v=20261103l"></script>
-  <script src="js/standings.js?v=20261103l"></script>
-  <script src="js/history.js?v=20261103l"></script>
-  <script src="js/gameday.js?v=20261103l"></script>
-  <script src="js/player.js?v=20261103l"></script>
-  <script src="js/ui.js?v=20261103l"></script>
-  <script src="js/main.js?v=20261103l"></script>
+  <script src="js/config.js?v=20261103n"></script>
+  <script src="js/sleeper.js?v=20261103n"></script>
+  <script src="js/stats.js?v=20261103n"></script>
+  <script src="js/games.js?v=20261103n"></script>
+  <script src="js/myteam.js?v=20261103n"></script>
+  <script src="js/waivers.js?v=20261103n"></script>
+  <script src="js/trade.js?v=20261103n"></script>
+  <script src="js/standings.js?v=20261103n"></script>
+  <script src="js/history.js?v=20261103n"></script>
+  <script src="js/gameday.js?v=20261103n"></script>
+  <script src="js/player.js?v=20261103n"></script>
+  <script src="js/ui.js?v=20261103n"></script>
+  <script src="js/main.js?v=20261103n"></script>
 </body>
 </html>

@@ -47,7 +47,7 @@ async function showLeague() {
   const stillHere = () => app.leagueId === league.league_id && app.tab === tab; // you may switch while it loads
   try {
     if (!app.leagueData[league.league_id]) {
-      if (NET.mode !== 'cache') view.innerHTML = '<p class="muted center">Loading ' + esc(league.name) + '…</p>';
+      if (NET.mode !== 'cache') view.innerHTML = chalkMsg('🏈 Huddling up…', 'Loading ' + league.name);
       // Keep your trade picks and chosen recap week when the data refreshes.
       app.leagueData[league.league_id] = Object.assign(await loadLeague(league, week), app.uiKeep[league.league_id] || {});
     }
@@ -86,7 +86,7 @@ async function showLeague() {
 
     if (tab === 'trade') {
       if (!d.points || !d.tradeExtrasLoaded) {
-        view.innerHTML = '<p class="muted center">Loading stats…</p>';
+        view.innerHTML = chalkMsg('📼 Reviewing the tape…', 'Loading stats');
         d.points = await loadPoints(league, app.me.season, week, app.players);
         app.fp = await loadDynastyValues();
         d.tradedPicks = leagueFormat(league) === 'dynasty'
@@ -101,7 +101,7 @@ async function showLeague() {
 
     // Waiver Wire: needs season stats, last week's stats and trending adds (a few MB, once per visit).
     if (!d.waivers) {
-      view.innerHTML = '<p class="muted center">Loading stats and trending players…</p>';
+      view.innerHTML = chalkMsg('📋 Checking the wire…', 'Loading stats and trending players');
       const [points, trending] = await Promise.all([
         loadPoints(league, app.me.season, week, app.players),
         loadTrending().catch(() => []),
@@ -449,6 +449,9 @@ async function loadAll(forcePlayers, mode) {
   if (!me.leagues.length) throw new Error('No ' + me.season + ' leagues found for ' + CONFIG.username + '.');
   fillLeaguePicker();
   await showLeague();
+  updateJumbo();
+  // Jumbotron covers every league: load the rest quietly (live pass only).
+  if (mode === 'network') loadAllLeagues(currentWeek()).then(updateJumbo).catch(() => {});
 }
 
 async function reloadAll(forcePlayers) {
@@ -484,7 +487,7 @@ async function showGameDay(week) {
   const view = $('#view');
   try {
     if (app.me.leagues.some(l => !app.leagueData[l.league_id])) {
-      if (NET.mode !== 'cache') view.innerHTML = '<p class="muted center">Loading all your leagues…</p>';
+      if (NET.mode !== 'cache') view.innerHTML = chalkMsg('📺 Warming up the jumbotron…', 'Loading all your leagues');
       await loadAllLeagues(week);
     }
     if (app.tab !== 'gameday') return;
@@ -583,6 +586,34 @@ $('#sheet').addEventListener('click', e => {
 window.addEventListener('popstate', () => closePlayer(true));
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closePlayer(false); });
 
+// ---------- Jumbotron (header): the week + how you're doing across leagues ----------
+function updateJumbo() {
+  const el = $('#jumbo');
+  if (!el || !app.me) return;
+  const week = currentWeek();
+  let win = 0, lose = 0, tie = 0;
+  for (const league of app.me.leagues) {
+    const d = app.leagueData[league.league_id];
+    if (!d) continue;
+    const mine = d.rosters.find(r => isMine(r, app.me.user.user_id));
+    if (!mine || !(mine.players || []).length) continue;
+    const m = d.matchups.find(x => x.roster_id === mine.roster_id);
+    if (!m || m.matchup_id == null) continue;
+    const opp = d.matchups.find(x => x.matchup_id === m.matchup_id && x.roster_id !== mine.roster_id);
+    if (!opp) continue;
+    if (m.points > opp.points) win++; else if (m.points < opp.points) lose++; else tie++;
+  }
+  const g = app.games || {};
+  const status = g.anyLive ? '<span class="jgood jlive">● LIVE</span>' : g.allDone ? '<span class="jw">FINAL</span>' : '';
+  const parts = [week ? '<span class="jw">WEEK ' + week + '</span>' : '<span class="jw">OFFSEASON</span>'];
+  if (win + lose + tie) {
+    parts.push((win ? '<span class="jgood">UP ' + win + '</span>' : '') + (win && (lose || tie) ? ' · ' : '') +
+      (lose ? '<span class="jbad">DOWN ' + lose + '</span>' : '') + (tie ? (win || lose ? ' · ' : '') + 'TIED ' + tie : ''));
+  }
+  el.innerHTML = parts.join('<span>  ·  </span>') + (status ? '<span>' + status + '</span>' : '');
+}
+$('#jumbo').addEventListener('click', () => { if (app.me) switchTab('gameday'); });
+
 // ---------- Live scores on game day ----------
 // While any NFL game is being played and you're looking at My Team, quietly re-download this
 // league's scores and the NFL scoreboard every minute (paused while the app is in the background).
@@ -613,6 +644,7 @@ async function refreshLive() {
       d.waivers = null; // lineups may have changed
     });
     app.liveAt = Date.now();
+    updateJumbo();
     if (app.tab === tab) await showLeague();
     else scheduleLive();
   } catch (e) {
