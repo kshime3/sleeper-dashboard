@@ -230,6 +230,27 @@ function histFor(id) {
   };
 }
 
+// Load a league's history once (shared by the Standings card and the player panel).
+// onUpdate is called as it progresses and when it's done.
+async function loadHistoryFor(league, onUpdate) {
+  const h = histFor(league.league_id);
+  if (h.hist) return h;
+  if (h.promise) { await h.promise; return h; }
+  h.loading = 'Loading…'; h.error = ''; onUpdate();
+  h.promise = (async () => {
+    try {
+      const raw = await loadHistory(league, (n, total) => { h.loading = 'Loading seasons… ' + n + ' of ' + total + ' done'; onUpdate(); });
+      h.hist = buildHistory(raw, league, app.players);
+    } catch (err) {
+      h.error = 'Couldn\'t load the history: ' + err.message;
+    }
+    h.loading = ''; h.promise = null;
+  })();
+  await h.promise;
+  onUpdate();
+  return h;
+}
+
 function redrawHistory(listOnly) {
   if (app.tab !== 'standings') return;
   const h = histFor(app.leagueId);
@@ -241,20 +262,8 @@ $('#view').addEventListener('click', async e => {
   if (app.tab !== 'standings') return;
   const h = histFor(app.leagueId);
   if (e.target.closest('[data-hload]')) {
-    if (h.loading) return;
     const league = currentLeague(), id = league.league_id;
-    h.loading = 'Loading…'; h.error = ''; redrawHistory();
-    try {
-      const raw = await loadHistory(league, (n, total, season) => {
-        h.loading = 'Loading seasons… ' + n + ' of ' + total + ' done';
-        if (app.leagueId === id) redrawHistory();
-      });
-      h.hist = buildHistory(raw, league, app.players);
-    } catch (err) {
-      h.error = 'Couldn\'t load the history: ' + err.message;
-    }
-    h.loading = '';
-    if (app.leagueId === id) redrawHistory();
+    await loadHistoryFor(league, () => { if (app.leagueId === id) redrawHistory(); });
     return;
   }
   const v = e.target.closest('[data-hview]');
@@ -453,20 +462,26 @@ $('#view').addEventListener('click', e => {
 
 // ---------- Player details panel ----------
 // Tap a player on My Team, Game Day or Waivers. (On Trade, a tap picks players for the trade instead.)
-let sheetPid = null;
+let sheetPid = null, sheetRedraw = () => {}, sheetLeague = () => null;
 async function openPlayer(id) {
   sheetPid = id;
   const sheet = $('#sheet'), body = $('#sheet-body');
   sheet.classList.remove('hidden');
   document.body.classList.add('sheet-open');
   if (!history.state || !history.state.sheet) history.pushState({ sheet: true }, ''); // phone Back button closes it
+  let lastPoints = null, lastLeague = null;
   const draw = (points, pointsLeague) => {
     if (sheetPid !== id) return;
+    lastPoints = points; lastLeague = pointsLeague;
+    const jl = pointsLeague || currentLeague();
     body.innerHTML = renderPlayerSheet(playerDetails({
       id, players: app.players, games: app.games, leagues: app.me.leagues, leagueData: app.leagueData,
       userId: app.me.user.user_id, points, pointsLeague,
+      journeyLeague: jl, history: app.history[jl.league_id] || null,
     }));
   };
+  sheetRedraw = () => draw(lastPoints, lastLeague);
+  sheetLeague = () => lastLeague || currentLeague();
   draw(null, null);
   try {
     const week = currentWeek();
@@ -499,7 +514,14 @@ $('#view').addEventListener('click', e => {
   const row = e.target.closest('[data-pid]');
   if (row && app.players[row.dataset.pid]) openPlayer(row.dataset.pid);
 });
-$('#sheet').addEventListener('click', e => { if (e.target.closest('[data-sheet-close]')) closePlayer(false); });
+$('#sheet').addEventListener('click', e => {
+  if (e.target.closest('[data-sheet-close]')) return closePlayer(false);
+  // "Load history" inside the panel: load this league's history, then show his journey.
+  if (e.target.closest('[data-jload]')) {
+    const league = sheetLeague();
+    if (league) loadHistoryFor(league, () => { sheetRedraw(); if (app.leagueId === league.league_id) redrawHistory(); });
+  }
+});
 window.addEventListener('popstate', () => closePlayer(true));
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closePlayer(false); });
 

@@ -63,4 +63,6 @@
 
 - Cleaned up trade display in League history (owner found it hard to read): one block per team ("[Team] receives"), items one per line, picks as "2024 1st-round pick" with "originally X's" underneath, ⇅ between sides, your side highlighted "(you)". Moves dated before September now say "offseason" (Sleeper files them under week 1).
 
-**Next:** owner tests history; later history ideas in docs/IDEAS.md; ESPN leagues when the owner follows up.
+- Added **player journey** to the player panel (owner asked): "His journey in [league]" — 🎓 drafted (draft + pick), 🔁 traded (from/to), 📥 waiver claim ($bid), 🆓 free-agent pickup, 🗑️ dropped, 🛠️ commissioner, then 📍 where he is now. Uses League history (now also downloads each season's drafts, saved for good); if history isn't loaded yet the panel shows a Load history button. Standings card and panel share the same loaded history.
+
+**Next:** owner tests; more history ideas in docs/IDEAS.md (records/champions, trades in hindsight, drafts); ESPN leagues when the owner follows up.

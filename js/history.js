@@ -45,11 +45,15 @@ async function loadHistory(league, onProgress) {
     const base = SLEEPER + '/league/' + lg.league_id;
     const rounds = [];
     for (let r = 0; r <= CONFIG.history.maxRounds; r++) rounds.push(r);
-    const [users, rosters, ...lists] = await Promise.all([get(base + '/users'), get(base + '/rosters')]
+    const [users, rosters, draftList, ...lists] = await Promise.all([get(base + '/users'), get(base + '/rosters'), get(base + '/drafts').catch(() => [])]
       .concat(rounds.map(r => get(base + '/transactions/' + r).catch(() => []))));
+    // That season's drafts and their picks (finished drafts never change, so saved for good).
+    const drafts = await Promise.all((draftList || []).filter(dr => dr.status === 'complete').map(async dr => ({
+      draft: dr, picks: await savedFirstJSON(SLEEPER + '/draft/' + dr.draft_id + '/picks').catch(() => []),
+    })));
     done++;
     if (onProgress) onProgress(done, chain.length, lg.season);
-    return { season: lg.season, league: lg, users, rosters, txns: [].concat(...lists) };
+    return { season: lg.season, league: lg, users, rosters, drafts, txns: [].concat(...lists) };
   });
   return { seasons, names: await loadOldNames() };
 }
@@ -69,6 +73,8 @@ function buildHistory(hist, current, players) {
     return { name: /^[A-Z]{2,3}$/.test(id) ? id + ' D/ST' : 'Player #' + id, pos: '' };
   };
   const trades = [], moves = [];
+  const journeys = {}; // player_id -> [{ date, season, kind, text }] (for the player panel)
+  const step = (pid, ev) => (journeys[pid] = journeys[pid] || []).push(ev);
 
   for (const s of hist.seasons) {
     const ownerOf = {}, label = {};
@@ -85,9 +91,36 @@ function buildHistory(hist, current, players) {
       from: p.roster_id !== p.owner_id ? (label[p.roster_id] || 'Team ' + p.roster_id) : '',
     });
 
+    // Drafts: "Drafted by X — 2023 rookie draft, pick 1.03"
+    for (const { draft, picks } of s.drafts || []) {
+      const rounds = (draft.settings && draft.settings.rounds) || 0;
+      const kind = rounds >= 10 ? (leagueFormat(current) === 'dynasty' ? 'startup draft' : 'draft') : 'rookie draft';
+      for (const pk of picks || []) {
+        if (!pk.player_id) continue;
+        const slot = pk.round + '.' + String(pk.draft_slot || '').padStart(2, '0');
+        step(pk.player_id, { date: draft.start_time || 0, season: s.season, kind: 'draft',
+          text: 'Drafted by ' + team(pk.roster_id).name + ' — ' + s.season + ' ' + kind + ', pick ' + slot });
+      }
+    }
+
     for (const t of s.txns) {
       if (!t || !t.type) continue;
       const base = { id: t.transaction_id, season: s.season, week: t.leg, date: t.status_updated || t.created, status: t.status };
+      // Player journeys (completed moves only)
+      if (t.status === 'complete') {
+        const ev = (pid, kind, text) => step(pid, { date: base.date, season: s.season, kind, text });
+        for (const pid of Object.keys(t.adds || {})) {
+          const to = team(t.adds[pid]).name, from = t.drops && t.drops[pid] != null ? team(t.drops[pid]).name : '';
+          if (t.type === 'trade') ev(pid, 'trade', 'Traded to ' + to + (from ? ' (from ' + from + ')' : ''));
+          else if (t.type === 'waiver') ev(pid, 'waiver', 'Claimed off waivers by ' + to + (t.settings && t.settings.waiver_bid ? ' ($' + t.settings.waiver_bid + ')' : ''));
+          else if (t.type === 'free_agent') ev(pid, 'free_agent', 'Picked up by ' + to + ' as a free agent');
+          else ev(pid, 'commissioner', 'Moved to ' + to + ' by the commissioner');
+        }
+        for (const pid of Object.keys(t.drops || {})) {
+          if (t.adds && t.adds[pid] != null) continue; // a trade or move, already listed
+          ev(pid, 'drop', 'Dropped by ' + team(t.drops[pid]).name);
+        }
+      }
       if (t.type === 'trade') {
         if (t.status !== 'complete') continue;
         const sides = (t.roster_ids || []).map(rid => ({
@@ -111,7 +144,8 @@ function buildHistory(hist, current, players) {
   const newest = (a, b) => (b.date || 0) - (a.date || 0);
   trades.sort(newest); moves.sort(newest);
   const seasons = hist.seasons.map(s => s.season);
-  return { trades, moves, seasons, managers, first: seasons[seasons.length - 1], last: seasons[0] };
+  for (const pid in journeys) journeys[pid].sort((a, b) => (a.date || 0) - (b.date || 0));
+  return { trades, moves, journeys, seasons, managers, first: seasons[seasons.length - 1], last: seasons[0] };
 }
 
 // Filters: { season: 'all' | '2024', team: 'all' | owner_id, q: 'text', type: 'all'|'waiver'|'free_agent'|'commissioner', failed: bool }

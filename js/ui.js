@@ -449,6 +449,25 @@ function renderGameDay(gd, opts, liveNote) {
 }
 
 // ---------- Player details panel ----------
+function renderJourney(j) {
+  if (!j) return '';
+  let html = '<h3 class="sheet-h">His journey in ' + esc(j.league.name) + '</h3>';
+  if (!j.events) {
+    return html + '<div class="pmeta small">Every draft, trade, waiver claim and drop for him in this league, from its first season on Sleeper.</div>' +
+      '<p><button class="btn small-btn" data-jload' + (j.loading ? ' disabled' : '') + '>' + esc(j.loading || 'Load history') + '</button></p>' +
+      (j.error ? '<div class="pmeta trail">' + esc(j.error) + '</div>' : '');
+  }
+  const icon = { draft: '🎓', trade: '🔁', waiver: '📥', free_agent: '🆓', drop: '🗑️', commissioner: '🛠️' };
+  if (!j.events.length) html += '<div class="pmeta">No drafts or moves for him in this league yet.</div>';
+  html += '<div class="journey">' + j.events.map(ev =>
+    '<div class="jstep"><div class="jicon">' + (icon[ev.kind] || '•') + '</div><div><div>' + esc(ev.text) + '</div>' +
+    '<div class="pmeta small">' + esc(ev.date ? fmtDate(ev.date) : ev.season) + '</div></div></div>').join('');
+  const o = j.now;
+  const now = !o ? '' : o.status === 'free' ? 'Free agent' : o.status === 'taken' ? 'On ' + o.ownerName : 'On your team' + (o.status === 'starting' ? ' (starting)' : o.status === 'ir' ? ' (IR)' : ' (bench)');
+  if (now) html += '<div class="jstep now"><div class="jicon">📍</div><div><b>Now:</b> ' + esc(now) + '</div></div>';
+  return html + '</div>';
+}
+
 function renderPlayerSheet(pd) {
   if (!pd) return '<div class="pmeta">Player not found.</div>';
   const p = pd.player;
@@ -488,6 +507,7 @@ function renderPlayerSheet(pd) {
     html += '<div class="own"><span class="lchip' + (o.status === 'starting' || o.status === 'bench' || o.status === 'ir' ? ' start' : '') + '">' + esc(o.short) + '</span> ' + what +
       (o.pts != null && pd.game && pd.game.state !== 'pre' ? ' <span class="pmeta">· ' + Number(o.pts).toFixed(1) + ' pts this week</span>' : '') + '</div>';
   }
+  html += renderJourney(pd.journey);
   return html;
 }
 

@@ -282,3 +282,9 @@ body.sheet-open { overflow: hidden; }
 .hrow .hp { margin: 0; }
 .hfrom { margin-left: 44px; margin-top: -1px; }
 .hswap { text-align: center; color: var(--muted); font-size: 14px; line-height: 1; margin: 2px 0 -2px; }
+
+/* Player journey (player panel) */
+.journey { border-left: 2px solid var(--line); margin-left: 12px; padding-left: 4px; }
+.jstep { display: grid; grid-template-columns: 28px 1fr; gap: 6px; padding: 5px 0; font-size: 14px; margin-left: -17px; }
+.jicon { background: var(--card); width: 26px; text-align: center; }
+.jstep.now { color: var(--accent); }

@@ -1,6 +1,6 @@
 // Logic: everything for the player details panel (opens when you tap a player).
 
-// ctx: { id, players, games, leagues, leagueData, userId, pointsLeague, points }
+// ctx: { id, players, games, leagues, leagueData, userId, pointsLeague, points, journeyLeague, history }
 function playerDetails(ctx) {
   const { id, players, games, leagues, leagueData, userId, pointsLeague, points } = ctx;
   const p = players[id];
@@ -31,5 +31,13 @@ function playerDetails(ctx) {
       recent: points.weeks.map(w => ({ week: w, pts: points.week(w, id) })),
     };
   }
-  return { player: p, game: gameFor(games, p), ownership, stats };
+  // His journey in one league (from League history, if it's been loaded).
+  const h = ctx.history;
+  const journey = ctx.journeyLeague ? {
+    league: ctx.journeyLeague,
+    loading: h ? h.loading : '', error: h ? h.error : '',
+    events: h && h.hist ? (h.hist.journeys[id] || []) : null,
+    now: ownership.find(o => o.league.league_id === ctx.journeyLeague.league_id) || null,
+  } : null;
+  return { player: p, game: gameFor(games, p), ownership, stats, journey };
 }
