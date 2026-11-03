@@ -140,7 +140,7 @@ function buildHistory(hist, current, players) {
       for (const pk of picks || []) {
         if (!pk.player_id) continue;
         const slot = pk.round + '.' + String(pk.draft_slot || '').padStart(2, '0');
-        step(pk.player_id, { date: draft.start_time || 0, season: s.season, kind: 'draft',
+        step(pk.player_id, { date: draft.start_time || 0, season: s.season, kind: 'draft', toRid: pk.roster_id,
           text: 'Drafted by ' + team(pk.roster_id).name + ' — ' + s.season + ' ' + kind + ', pick ' + slot });
       }
     }
@@ -150,17 +150,19 @@ function buildHistory(hist, current, players) {
       const base = { id: t.transaction_id, season: s.season, week: t.leg, date: t.status_updated || t.created, status: t.status };
       // Player journeys (completed moves only)
       if (t.status === 'complete') {
-        const ev = (pid, kind, text) => step(pid, { date: base.date, season: s.season, kind, text });
+        // fromRid / toRid let "trades in hindsight" see when a player left a team.
+        const ev = (pid, kind, text, fromRid, toRid) => step(pid, { date: base.date, season: s.season, kind, text, fromRid, toRid });
         for (const pid of Object.keys(t.adds || {})) {
-          const to = team(t.adds[pid]).name, from = t.drops && t.drops[pid] != null ? team(t.drops[pid]).name : '';
-          if (t.type === 'trade') ev(pid, 'trade', 'Traded to ' + to + (from ? ' (from ' + from + ')' : ''));
-          else if (t.type === 'waiver') ev(pid, 'waiver', 'Claimed off waivers by ' + to + (t.settings && t.settings.waiver_bid ? ' ($' + t.settings.waiver_bid + ')' : ''));
-          else if (t.type === 'free_agent') ev(pid, 'free_agent', 'Picked up by ' + to + ' as a free agent');
-          else ev(pid, 'commissioner', 'Moved to ' + to + ' by the commissioner');
+          const toRid = t.adds[pid], fromRid = t.drops && t.drops[pid] != null ? t.drops[pid] : null;
+          const to = team(toRid).name, from = fromRid != null ? team(fromRid).name : '';
+          if (t.type === 'trade') ev(pid, 'trade', 'Traded to ' + to + (from ? ' (from ' + from + ')' : ''), fromRid, toRid);
+          else if (t.type === 'waiver') ev(pid, 'waiver', 'Claimed off waivers by ' + to + (t.settings && t.settings.waiver_bid ? ' ($' + t.settings.waiver_bid + ')' : ''), fromRid, toRid);
+          else if (t.type === 'free_agent') ev(pid, 'free_agent', 'Picked up by ' + to + ' as a free agent', fromRid, toRid);
+          else ev(pid, 'commissioner', 'Moved to ' + to + ' by the commissioner', fromRid, toRid);
         }
         for (const pid of Object.keys(t.drops || {})) {
           if (t.adds && t.adds[pid] != null) continue; // a trade or move, already listed
-          ev(pid, 'drop', 'Dropped by ' + team(t.drops[pid]).name);
+          ev(pid, 'drop', 'Dropped by ' + team(t.drops[pid]).name, t.drops[pid], null);
         }
       }
       if (t.type === 'trade') {
@@ -339,7 +341,15 @@ function tradeHindsight(h) {
         for (const pid of items) if (r.starters.has(pid) && r.pts[pid] != null) per[pid] += r.pts[pid];
       }
       const total = Object.values(per).reduce((a, b) => a + b, 0);
-      return { rid, per, total: Math.round(total * 10) / 10 };
+      // Why an item may show few points: a pick traded on before the draft, or a player who left later.
+      const notes = {};
+      for (const pk of sd.picks) if (pk.became && pk.became.id && pk.became.by) notes[pk.became.id] = { tradedOn: true };
+      for (const pid of items) {
+        if (notes[pid]) continue;
+        const left = (h.journeys[pid] || []).find(e => e.date > (t.date || 0) && e.fromRid === rid);
+        if (left) notes[pid] = { left: left.kind === 'drop' ? 'dropped' : left.kind === 'trade' ? 'traded away' : 'moved', date: left.date };
+      }
+      return { rid, per, notes, total: Math.round(total * 10) / 10 };
     });
     const sorted = sides.slice().sort((a, b) => b.total - a.total);
     const diff = sides.length > 1 ? Math.round((sorted[0].total - sorted[1].total) * 10) / 10 : 0;

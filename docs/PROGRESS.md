@@ -73,4 +73,6 @@
 
 - Owner tested records: works. Built **trades in hindsight** (Trades view of League history; "📈 Show how trades turned out" button, shares Records' weekly scores): for each team, points what it received scored in ITS starting lineup from the trade week on (stops when a player leaves, resumes if he returns; used picks count the player they became). Verdict per trade: winner + margin / even so far (<15 pts or <10%) / too early (<3 weeks) / no starting points yet; team totals and per-item points; "Most lopsided first" sort. Checked by hand: Kirk Cousins for Bear Goggles since Nov 2024 = 82.4 pts in 9 starts (matches). MFFL Dynasty: 93 trades → 67 clear winners, 7 even, 19 no points yet.
 
+- Owner asked why Jordan Addison showed 0 pts in a 2021 trade: correct by the rule — 🔥Bitch🔥 got that 2023 1st in Oct 2021 but traded it on (May 2023, via Matt's Friend) before Love is in the Air used it on Addison (473 starting pts, all for them). Now explained on screen: picks traded on show "🔁 traded on before the draft" instead of 0.0; players/drafted picks that later left show "· traded away Mar 2023" / "· dropped Oct 2022" (journey events now record fromRid/toRid). MFFL Dynasty: 50 traded-on picks, 167 departures annotated.
+
 **Next:** owner tests; remaining history idea in docs/IDEAS.md (browse drafts); ESPN leagues when the owner follows up.

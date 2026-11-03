@@ -541,7 +541,11 @@ function renderHistoryList(h, st) {
       const ptsFor = (sd, pid) => {
         if (!hs || !pid) return '';
         const s2 = hs.sides.find(z => z.rid === sd.team.rid);
-        return s2 && s2.per[pid] != null ? ' <span class="hpts">' + s2.per[pid].toFixed(1) + ' pts</span>' : '';
+        if (!s2 || s2.per[pid] == null) return '';
+        const n = s2.notes[pid];
+        if (n && n.tradedOn) return ' <span class="hpts">🔁 traded on before the draft</span>';
+        const monthYear = d => new Date(d).toLocaleDateString([], { month: 'short', year: 'numeric' });
+        return ' <span class="hpts">' + s2.per[pid].toFixed(1) + ' pts' + (n && n.left ? ' · ' + n.left + ' ' + monthYear(n.date) : '') + '</span>';
       };
       const sideTotal = sd => {
         if (!hs) return '';
