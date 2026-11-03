@@ -268,6 +268,21 @@ $('#view').addEventListener('click', async e => {
   }
   const v = e.target.closest('[data-hview]');
   if (v) { h.view = v.dataset.hview; h.limit = CONFIG.history.pageSize; redrawHistory(); return; }
+  if (e.target.closest('[data-rload]') && h.hist && !h.records && !h.recLoading) {
+    const id = app.leagueId;
+    h.recLoading = 'Loading…'; h.recError = ''; redrawHistory();
+    try {
+      h.records = await loadRecords(h.hist, currentWeek(), (n, total) => {
+        h.recLoading = 'Loading seasons… ' + n + ' of ' + total + ' done';
+        if (app.leagueId === id) redrawHistory();
+      });
+    } catch (err) {
+      h.recError = 'Couldn\'t load the records: ' + err.message;
+    }
+    h.recLoading = '';
+    if (app.leagueId === id) redrawHistory();
+    return;
+  }
   if (e.target.closest('[data-hmore]')) { h.limit += CONFIG.history.pageSize; redrawHistory(true); }
 });
 

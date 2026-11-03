@@ -98,6 +98,7 @@ function buildHistory(hist, current, players) {
   }
 
   const trades = [], moves = [];
+  const seasonInfo = []; // per season: league, rosters, team(roster_id) — used by League records
   const journeys = {}; // player_id -> [{ date, season, kind, text }] (for the player panel)
   const step = (pid, ev) => (journeys[pid] = journeys[pid] || []).push(ev);
 
@@ -110,6 +111,7 @@ function buildHistory(hist, current, players) {
       if (r.owner_id) managers[r.owner_id] = managers[r.owner_id] || name;
     }
     const team = rid => ({ rid, owner: ownerOf[rid] || '', name: label[rid] || 'Team ' + rid });
+    seasonInfo.push({ season: s.season, league: s.league, rosters: s.rosters, team });
     // A draft pick: "2024 1st-round pick", plus whose pick it originally was (if not the receiver's own).
     const pickInfo = p => {
       const info = {
@@ -185,7 +187,7 @@ function buildHistory(hist, current, players) {
   trades.sort(newest); moves.sort(newest);
   const seasons = hist.seasons.map(s => s.season);
   for (const pid in journeys) journeys[pid].sort((a, b) => (a.date || 0) - (b.date || 0));
-  return { trades, moves, journeys, seasons, managers, first: seasons[seasons.length - 1], last: seasons[0] };
+  return { trades, moves, journeys, seasons, managers, seasonInfo, pname, first: seasons[seasons.length - 1], last: seasons[0] };
 }
 
 // Filters: { season: 'all' | '2024', team: 'all' | owner_id, q: 'text', type: 'all'|'waiver'|'free_agent'|'commissioner', failed: bool }
@@ -204,4 +206,95 @@ function filterHistory(h, view, f) {
     (f.type === 'all' || m.type === f.type) &&
     (f.failed || m.status === 'complete') &&
     (!q || names(m.adds).concat(names(m.drops)).some(n => n.includes(q))));
+}
+
+// ---------- League records ----------
+// Needs each season's playoff bracket and every week's scores (~17 small requests a season,
+// saved on the phone for good once a season is over). currentWeek: games before it count.
+async function loadRecords(h, currentWeek, onProgress) {
+  let done = 0;
+  const perSeason = await inBatches(h.seasonInfo, CONFIG.history.seasonsAtOnce, async si => {
+    const lg = si.league, finished = lg.status === 'complete';
+    const get = finished ? savedFirstJSON : getJSON;
+    const base = SLEEPER + '/league/' + lg.league_id;
+    const last = finished ? (lg.settings.last_scored_leg || 17) : Math.max(0, currentWeek - 1);
+    const weeks = [];
+    for (let w = 1; w <= last; w++) weeks.push(w);
+    const [bracket, ...weekly] = await Promise.all([get(base + '/winners_bracket').catch(() => [])]
+      .concat(weeks.map(w => get(base + '/matchups/' + w).catch(() => []))));
+    done++;
+    if (onProgress) onProgress(done, h.seasonInfo.length);
+    return { si, finished, bracket: bracket || [], weeks: weeks.map((w, i) => ({ week: w, matchups: weekly[i] || [] })) };
+  });
+  return buildRecords(h, perSeason);
+}
+
+function buildRecords(h, perSeason) {
+  const top = CONFIG.history.recordsTop;
+  const champions = [], games = [], playerGames = [], seasonTotals = [];
+  const mgr = {}; // owner_id -> all-time totals
+  const M = (owner, name) => (mgr[owner] = mgr[owner] || { owner, name: h.managers[owner] || name, seasons: 0, w: 0, l: 0, t: 0, pf: 0, pa: 0, titles: 0, finals: 0, playoffs: 0 });
+
+  for (const { si, finished, bracket, weeks } of perSeason) {
+    const lg = si.league;
+    const playoffStart = lg.settings.playoff_week_start || 99;
+    // Champion: the winner of the 1st-place game in the winners bracket.
+    const final = bracket.find(m => m.p === 1 && m.w);
+    if (final) champions.push({ season: si.season, champ: si.team(final.w), runnerUp: si.team(final.l) });
+    else champions.push({ season: si.season, champ: null, inProgress: !finished });
+    const inPlayoffs = new Set();
+    for (const m of bracket) { if (m.t1) inPlayoffs.add(m.t1); if (m.t2) inPlayoffs.add(m.t2); }
+
+    // Regular-season totals per manager (from each season's final standings)
+    for (const r of si.rosters) {
+      if (!r.owner_id || !(r.players || []).length && finished === false) continue;
+      const st = r.settings || {}, t = si.team(r.roster_id), m = M(r.owner_id, t.name);
+      const pf = (st.fpts || 0) + (st.fpts_decimal || 0) / 100, pa = (st.fpts_against || 0) + (st.fpts_against_decimal || 0) / 100;
+      m.seasons++; m.w += st.wins || 0; m.l += st.losses || 0; m.t += st.ties || 0; m.pf += pf; m.pa += pa;
+      if (inPlayoffs.has(r.roster_id)) m.playoffs++;
+      if (final && final.w === r.roster_id) m.titles++;
+      if (final && (final.w === r.roster_id || final.l === r.roster_id)) m.finals++;
+      if (finished) seasonTotals.push({ season: si.season, team: t, pf, w: st.wins || 0, l: st.losses || 0, t: st.ties || 0 });
+    }
+
+    // Every game, for single-game records
+    for (const { week, matchups } of weeks) {
+      const playoff = week >= playoffStart;
+      const byMatch = {};
+      for (const m of matchups) {
+        if (!m || !m.points) continue;
+        const t = si.team(m.roster_id);
+        // Best single-player game (starters only)
+        const pts = m.players_points || {};
+        for (const pid of m.starters || []) {
+          if (pid && pid !== '0' && pts[pid] != null) playerGames.push({ season: si.season, week, playoff, team: t, pid, pts: pts[pid] });
+        }
+        if (playoff && m.matchup_id == null) continue; // not in a playoff game that week
+        games.push({ season: si.season, week, playoff, team: t, pts: m.points });
+        if (m.matchup_id != null) (byMatch[m.matchup_id] = byMatch[m.matchup_id] || []).push({ team: t, pts: m.points });
+      }
+      for (const id in byMatch) {
+        const [a, b] = byMatch[id].sort((x, y) => y.pts - x.pts);
+        if (b) games.push({ season: si.season, week, playoff, h2h: true, winner: a, loser: b, margin: Math.round((a.pts - b.pts) * 100) / 100 });
+      }
+    }
+  }
+
+  const scores = games.filter(g => !g.h2h), h2h = games.filter(g => g.h2h);
+  const byDesc = k => (a, b) => b[k] - a[k], byAsc = k => (a, b) => a[k] - b[k];
+  playerGames.sort(byDesc('pts'));
+  const managers = Object.values(mgr).map(m => Object.assign(m, { pct: (m.w + m.t / 2) / Math.max(1, m.w + m.l + m.t) }))
+    .sort((a, b) => (b.titles - a.titles) || (b.pct - a.pct));
+  return {
+    champions,
+    managers,
+    highest: scores.slice().sort(byDesc('pts')).slice(0, top),
+    lowest: scores.slice().sort(byAsc('pts')).slice(0, top),
+    blowouts: h2h.slice().sort(byDesc('margin')).slice(0, top),
+    closest: h2h.filter(g => g.margin > 0).sort(byAsc('margin')).slice(0, top),
+    playerBest: playerGames.slice(0, top).map(g => Object.assign(g, { player: Object.assign({ id: g.pid }, h.pname(g.pid)) })),
+    seasonPoints: seasonTotals.slice().sort(byDesc('pf')).slice(0, top),
+    seasonRecord: seasonTotals.slice().sort((a, b) => (b.w - a.w) || (b.pf - a.pf)).slice(0, top),
+    seasonsCount: perSeason.length,
+  };
 }

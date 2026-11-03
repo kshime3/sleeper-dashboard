@@ -51,6 +51,7 @@ const CONFIG = {
     maxRounds: 18,    // Sleeper stores transactions per week ("round"); check weeks 0-18
     pageSize: 40,     // show this many trades/transactions, then "Show more"
     seasonsAtOnce: 4, // download this many seasons at the same time (first load only)
+    recordsTop: 5,    // League records: show the top 5 in each list
   },
 
   // Your notes about each league (matched by league name). Sleeper's own settings

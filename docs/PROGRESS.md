@@ -69,4 +69,6 @@
 
 - More spacing in League history (owner asked): roomier rows, dashed dividers between items in a team's block, a line under each team header, thicker line between trades.
 
-**Next:** owner tests; more history ideas in docs/IDEAS.md (records/champions, trades in hindsight, drafts); ESPN leagues when the owner follows up.
+- Owner tested spacing: works. Built **League records** (🏅 Records, 3rd view in the League history card; "Load records"): 🏆 champions by year (winner of the bracket's 1st-place game, + runner-up), all-time list per manager (titles, W-L & win %, finals, playoff trips, points; your row highlighted), top 5 highest/lowest scores, biggest blowouts, closest games, best single-player games, most points in a season, best regular-season records. Uses each season's winners_bracket + every week's matchups (~130 requests first time, saved for good; ~11 s first load, ~3 s after). Checked: all-time W = L (510), 7 champions for 7 finished seasons.
+
+**Next:** owner tests; remaining history ideas in docs/IDEAS.md (trades in hindsight, browse drafts); ESPN leagues when the owner follows up.

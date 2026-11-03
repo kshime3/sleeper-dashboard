@@ -5,7 +5,6 @@ Ideas we've talked about but haven't built yet. Newest at the top.
 ## League history: next steps (discussed 2026-11-03)
 
 Trades + transactions are built (bottom of Standings). Still to do, if wanted:
-- **League records:** champions by year (playoff brackets), all-time record per manager, highest single-week score.
 - **Trades in hindsight:** points each side actually got from the players after the trade (needs past weekly matchups).
 - **Drafts:** browse the 2019 startup draft and every rookie draft (the data is already downloaded with League history, for player journeys).
 

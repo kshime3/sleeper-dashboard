@@ -570,9 +570,11 @@ function renderHistory(st) {
   const f = st.f;
   const sel = (key, opts) => '<select data-hfilter="' + key + '">' + opts.map(([v, t]) => '<option value="' + esc(v) + '"' + (String(f[key]) === String(v) ? ' selected' : '') + '>' + esc(t) + '</option>').join('') + '</select>';
   html += '<div class="pmeta small">' + h.seasons.length + ' seasons (' + h.first + '–' + h.last + ') · ' + h.trades.length + ' trades · ' + h.moves.filter(m => m.status === 'complete').length + ' transactions</div>' +
-    '<div class="seg"><button data-hview="trades" class="' + (st.view === 'trades' ? 'on' : '') + '">🔁 Trades</button>' +
-    '<button data-hview="moves" class="' + (st.view === 'moves' ? 'on' : '') + '">📥 Transactions</button></div>' +
-    '<div class="hfilters">' +
+    '<div class="seg three"><button data-hview="trades" class="' + (st.view === 'trades' ? 'on' : '') + '">🔁 Trades</button>' +
+    '<button data-hview="moves" class="' + (st.view === 'moves' ? 'on' : '') + '">📥 Moves</button>' +
+    '<button data-hview="records" class="' + (st.view === 'records' ? 'on' : '') + '">🏅 Records</button></div>';
+  if (st.view === 'records') return html + renderRecords(st) + '</div>';
+  html += '<div class="hfilters">' +
       sel('season', [['all', 'All seasons']].concat(h.seasons.map(s => [s, s]))) +
       sel('team', [['all', 'All teams']].concat(Object.entries(h.managers).sort((a, b) => a[1].localeCompare(b[1])).map(([id, n]) => [id, n]))) +
       (st.view === 'moves' ? sel('type', [['all', 'All types'], ['waiver', 'Waiver claims'], ['free_agent', 'Free agents'], ['commissioner', 'Commissioner']]) : '') +
@@ -580,4 +582,46 @@ function renderHistory(st) {
       (st.view === 'moves' ? '<label class="hcheck"><input type="checkbox" data-hfilter="failed"' + (f.failed ? ' checked' : '') + '> Show failed waiver bids</label>' : '') +
     '</div><div id="hist-list">' + renderHistoryList(h, st) + '</div>';
   return html + '</div>';
+}
+
+// ---------- League records (History card, 🏅 Records view) ----------
+function renderRecords(st) {
+  if (!st.records) {
+    return '<div class="pmeta">Champions, all-time records and the best (and worst) games in league history.</div>' +
+      '<p><button class="btn" data-rload' + (st.recLoading ? ' disabled' : '') + '>' + esc(st.recLoading || 'Load records') + '</button></p>' +
+      (st.recError ? '<div class="pmeta trail">' + esc(st.recError) + '</div>' : '');
+  }
+  const r = st.records, me = app.me && app.me.user.user_id;
+  const f2 = n => Number(n).toFixed(2), f1 = n => Number(n).toFixed(1);
+  const when = g => g.season + ' wk ' + g.week + (g.playoff ? ' · playoffs' : '');
+  const youCls = t => t && t.owner === me ? ' you' : '';
+  const list = (title, rows) => '<h3 class="rec-h">' + title + '</h3><ol class="rec-list">' + rows.join('') + '</ol>';
+  let html = '';
+
+  // Champions
+  html += '<h3 class="rec-h">🏆 Champions</h3><div class="champs">' + r.champions.map(c =>
+    '<div class="champ' + youCls(c.champ) + '"><b>' + esc(c.season) + '</b><div>' +
+    (c.champ ? '🏆 ' + esc(c.champ.name) + '<div class="pmeta small">beat ' + esc(c.runnerUp.name) + ' in the final</div>'
+      : '<span class="pmeta">' + (c.inProgress ? 'In progress' : 'No playoff bracket') + '</span>') + '</div></div>').join('') + '</div>';
+
+  // All-time managers
+  html += '<h3 class="rec-h">📊 All-time</h3><div class="mgrs">' + r.managers.map((m, i) =>
+    '<div class="mgr' + (m.owner === me ? ' you' : '') + '"><div class="mgr-top"><span class="mgr-rank">' + (i + 1) + '</span><b>' + esc(m.name) + '</b>' +
+      (m.titles ? ' <span class="mgr-titles">' + '🏆'.repeat(Math.min(m.titles, 5)) + '</span>' : '') + '</div>' +
+    '<div class="mgr-stats"><span><b>' + m.w + '-' + m.l + (m.t ? '-' + m.t : '') + '</b> (' + (m.pct * 100).toFixed(0) + '%)</span>' +
+      '<span>Finals <b>' + m.finals + '</b></span><span>Playoffs <b>' + m.playoffs + '</b>/' + m.seasons + '</span>' +
+      '<span><b>' + Math.round(m.pf).toLocaleString() + '</b> pts</span></div></div>').join('') +
+    '</div><div class="pmeta small">Ranked by titles, then win %. Records are regular season; the current season counts so far.</div>';
+
+  // Single games
+  html += list('🔥 Highest scores', r.highest.map(g => '<li class="' + youCls(g.team) + '"><b>' + f2(g.pts) + '</b> ' + esc(g.team.name) + ' <span class="pmeta">' + esc(when(g)) + '</span></li>'));
+  html += list('🧊 Lowest scores', r.lowest.map(g => '<li class="' + youCls(g.team) + '"><b>' + f2(g.pts) + '</b> ' + esc(g.team.name) + ' <span class="pmeta">' + esc(when(g)) + '</span></li>'));
+  html += list('💥 Biggest blowouts', r.blowouts.map(g => '<li class="' + youCls(g.winner.team) + '"><b>+' + f2(g.margin) + '</b> ' + esc(g.winner.team.name) + ' ' + f2(g.winner.pts) + ' – ' + f2(g.loser.pts) + ' ' + esc(g.loser.team.name) + ' <span class="pmeta">' + esc(when(g)) + '</span></li>'));
+  html += list('😬 Closest games', r.closest.map(g => '<li class="' + youCls(g.winner.team) + '"><b>' + f2(g.margin) + '</b> ' + esc(g.winner.team.name) + ' ' + f2(g.winner.pts) + ' – ' + f2(g.loser.pts) + ' ' + esc(g.loser.team.name) + ' <span class="pmeta">' + esc(when(g)) + '</span></li>'));
+  html += list('⭐ Best player games', r.playerBest.map(g => '<li class="' + youCls(g.team) + '"><b>' + f2(g.pts) + '</b> ' + histPlayer(g.player) + ' <span class="pmeta">for ' + esc(g.team.name) + ' · ' + esc(when(g)) + '</span></li>'));
+
+  // Seasons
+  html += list('📈 Most points in a season', r.seasonPoints.map(x => '<li class="' + youCls(x.team) + '"><b>' + f1(x.pf) + '</b> ' + esc(x.team.name) + ' <span class="pmeta">' + esc(x.season) + ' · ' + x.w + '-' + x.l + '</span></li>'));
+  html += list('🥇 Best regular-season records', r.seasonRecord.map(x => '<li class="' + youCls(x.team) + '"><b>' + x.w + '-' + x.l + (x.t ? '-' + x.t : '') + '</b> ' + esc(x.team.name) + ' <span class="pmeta">' + esc(x.season) + ' · ' + f1(x.pf) + ' pts</span></li>'));
+  return html + '<div class="pmeta small" style="margin-top:10px">Team names are each manager\'s current name. Your rows are highlighted.</div>';
 }
