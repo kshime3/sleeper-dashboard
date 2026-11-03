@@ -61,4 +61,6 @@
 - Explored league history (owner asked): Sleeper links every past season; MFFL Dynasty has 8 seasons (2019–2026), 93 trades, ~1,800 transactions, all drafts.
 - Built **League history** at the bottom of Standings (owner chose: trades + transactions first). "Load history" button; Trades / Transactions views; filters for season, team (by manager, across seasons), player search, transaction type, failed waiver bids; "Show more". First load ~4 s (152 small requests, 4 seasons at a time); after that finished seasons come from the phone (~0.3 s). Old/retired player names come from new data/names.json (built hourly, all players, friend-friendly). Fixed: tapping Load during the open-time refresh lost the result.
 
+- Cleaned up trade display in League history (owner found it hard to read): one block per team ("[Team] receives"), items one per line, picks as "2024 1st-round pick" with "originally X's" underneath, ⇅ between sides, your side highlighted "(you)". Moves dated before September now say "offseason" (Sleeper files them under week 1).
+
 **Next:** owner tests history; later history ideas in docs/IDEAS.md; ESPN leagues when the owner follows up.

@@ -272,3 +272,13 @@ body.sheet-open { overflow: hidden; }
 .hp[data-pid] { cursor: pointer; }
 .hmove { margin-top: 3px; }
 .hmore { width: 100%; margin-top: 8px; }
+
+/* League history: a trade, one block per team */
+.hblock { background: var(--card-2); border-radius: 10px; padding: 8px 10px; margin-top: 6px; border-left: 4px solid var(--line); }
+.hblock.mine { border-left-color: var(--accent); }
+.hhead { font-weight: 700; font-size: 14px; margin-bottom: 4px; overflow-wrap: anywhere; }
+.hblock.mine .hhead { color: var(--accent); }
+.hrow { padding: 2px 0; font-size: 14px; }
+.hrow .hp { margin: 0; }
+.hfrom { margin-left: 44px; margin-top: -1px; }
+.hswap { text-align: center; color: var(--muted); font-size: 14px; line-height: 1; margin: 2px 0 -2px; }

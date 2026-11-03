@@ -506,13 +506,22 @@ function renderHistoryList(h, st) {
   let html = '<div class="pmeta small hcount">' + list.length + (st.view === 'trades' ? ' trade' : ' transaction') + (list.length === 1 ? '' : 's') + '</div>';
   if (!list.length) html += '<div class="pmeta">Nothing matches these filters.</div>';
   for (const x of shown) {
-    const when = fmtDate(x.date) + ' · ' + x.season + (x.week ? ' wk ' + x.week : ' offseason');
+    // Sleeper files offseason moves under week 1; anything dated before September is offseason.
+    const offseason = !x.week || (x.date && new Date(x.date) < new Date(Number(x.season), 8, 1));
+    const when = fmtDate(x.date) + ' · ' + x.season + (offseason ? ' offseason' : ' wk ' + x.week);
     if (st.view === 'trades') {
-      html += '<div class="hitem"><div class="pmeta small">🔁 ' + esc(when) + '</div>' + x.sides.map(sd =>
-        '<div class="hside"><div class="hteam">' + esc(sd.team.name) + ' got</div><div>' +
-          (sd.players.map(histPlayer).concat(sd.picks.map(pk => '<span class="hp"><span class="slot inline PICK">PICK</span> ' + esc(pk) + '</span>'))
-            .concat(sd.faab ? ['<span class="hp">💰 $' + sd.faab + ' FAAB</span>'] : []).join('') || '<span class="pmeta">nothing</span>') +
-        '</div></div>').join('') + '</div>';
+      const me = app.me && app.me.user.user_id;
+      const side = sd => {
+        const mine = sd.team.owner && sd.team.owner === me;
+        const items = sd.players.map(p => '<div class="hrow">' + histPlayer(p) + '</div>')
+          .concat(sd.picks.map(pk => '<div class="hrow"><span class="slot inline PICK">PICK</span> ' + esc(pk.label) +
+            (pk.from ? '<div class="pmeta small hfrom">originally ' + esc(pk.from) + '\'s</div>' : '') + '</div>'))
+          .concat(sd.faab ? ['<div class="hrow">💰 $' + sd.faab + ' FAAB</div>'] : []);
+        return '<div class="hblock' + (mine ? ' mine' : '') + '"><div class="hhead">' + esc(sd.team.name) + (mine ? ' <span class="pmeta">(you)</span>' : '') + ' receives</div>' +
+          (items.join('') || '<div class="pmeta">nothing</div>') + '</div>';
+      };
+      html += '<div class="hitem"><div class="pmeta small">🔁 Trade · ' + esc(when) + '</div>' +
+        x.sides.map(side).join('<div class="hswap">⇅</div>') + '</div>';
     } else {
       const icon = x.type === 'waiver' ? (x.status === 'complete' ? '📥' : '❌') : x.type === 'free_agent' ? '🆓' : '🛠️';
       const what = x.type === 'waiver' ? (x.status === 'complete' ? 'Waiver claim' : 'Failed waiver bid') : x.type === 'free_agent' ? 'Free agent' : 'Commissioner';

@@ -79,7 +79,11 @@ function buildHistory(hist, current, players) {
       if (r.owner_id) managers[r.owner_id] = managers[r.owner_id] || name;
     }
     const team = rid => ({ rid, owner: ownerOf[rid] || '', name: label[rid] || 'Team ' + rid });
-    const pickText = p => p.season + ' ' + roundName(p.round) + (p.roster_id !== p.owner_id ? ' (' + (label[p.roster_id] || 'Team ' + p.roster_id) + '\'s)' : '');
+    // A draft pick: "2024 1st-round pick", plus whose pick it originally was (if not the receiver's own).
+    const pickInfo = p => ({
+      label: p.season + ' ' + roundName(p.round) + '-round pick',
+      from: p.roster_id !== p.owner_id ? (label[p.roster_id] || 'Team ' + p.roster_id) : '',
+    });
 
     for (const t of s.txns) {
       if (!t || !t.type) continue;
@@ -89,7 +93,7 @@ function buildHistory(hist, current, players) {
         const sides = (t.roster_ids || []).map(rid => ({
           team: team(rid),
           players: Object.keys(t.adds || {}).filter(pid => t.adds[pid] === rid).map(pid => ({ id: pid, ...pname(pid) })),
-          picks: (t.draft_picks || []).filter(p => p.owner_id === rid).map(pickText),
+          picks: (t.draft_picks || []).filter(p => p.owner_id === rid).map(pickInfo),
           faab: (t.waiver_budget || []).filter(w => w.receiver === rid).reduce((a, w) => a + (w.amount || 0), 0),
         }));
         trades.push({ ...base, sides });
@@ -118,7 +122,7 @@ function filterHistory(h, view, f) {
     return h.trades.filter(t =>
       (f.season === 'all' || t.season === f.season) &&
       (f.team === 'all' || t.sides.some(s => s.team.owner === f.team)) &&
-      (!q || t.sides.some(s => names(s.players).some(n => n.includes(q)) || s.picks.some(p => p.toLowerCase().includes(q)))));
+      (!q || t.sides.some(s => names(s.players).some(n => n.includes(q)) || s.picks.some(p => (p.label + ' ' + p.from).toLowerCase().includes(q)))));
   }
   return h.moves.filter(m =>
     (f.season === 'all' || m.season === f.season) &&
