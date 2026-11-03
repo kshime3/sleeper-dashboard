@@ -291,3 +291,14 @@ body.sheet-open { overflow: hidden; }
 
 .hbecame { margin-left: 44px; font-size: 13px; color: var(--accent); }
 .hbecame .hp { font-size: 13px; color: var(--text); }
+
+/* League history: more breathing room (owner found it hard to read) */
+.hitem { padding: 14px 0 16px; }
+.hitem + .hitem { border-top: 2px solid var(--line); }
+.hblock { padding: 10px 12px; margin-top: 8px; }
+.hhead { margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
+.hrow { padding: 8px 0; line-height: 1.35; }
+.hrow + .hrow { border-top: 1px dashed var(--line); }
+.hfrom, .hbecame { margin-top: 2px; }
+.hswap { margin: 6px 0 0; font-size: 16px; }
+.hmove { margin-top: 6px; line-height: 1.6; }
