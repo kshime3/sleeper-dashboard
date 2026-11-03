@@ -48,9 +48,14 @@ async function loadHistory(league, onProgress) {
     const [users, rosters, draftList, ...lists] = await Promise.all([get(base + '/users'), get(base + '/rosters'), get(base + '/drafts').catch(() => [])]
       .concat(rounds.map(r => get(base + '/transactions/' + r).catch(() => []))));
     // That season's drafts and their picks (finished drafts never change, so saved for good).
-    const drafts = await Promise.all((draftList || []).filter(dr => dr.status === 'complete').map(async dr => ({
-      draft: dr, picks: await savedFirstJSON(SLEEPER + '/draft/' + dr.draft_id + '/picks').catch(() => []),
-    })));
+    // (The draft's own page says which slot belonged to which team: slot_to_roster_id.)
+    const drafts = await Promise.all((draftList || []).filter(dr => dr.status === 'complete').map(async dr => {
+      const [picks, detail] = await Promise.all([
+        savedFirstJSON(SLEEPER + '/draft/' + dr.draft_id + '/picks').catch(() => []),
+        savedFirstJSON(SLEEPER + '/draft/' + dr.draft_id).catch(() => null),
+      ]);
+      return { draft: Object.assign({}, dr, detail && detail.slot_to_roster_id ? { slot_to_roster_id: detail.slot_to_roster_id } : {}), picks };
+    }));
     done++;
     if (onProgress) onProgress(done, chain.length, lg.season);
     return { season: lg.season, league: lg, users, rosters, drafts, txns: [].concat(...lists) };
@@ -63,7 +68,11 @@ async function loadHistory(league, onProgress) {
 function buildHistory(hist, current, players) {
   const latest = hist.seasons[0];
   const currentName = {};
-  for (const r of latest.rosters) if (r.owner_id) currentName[r.owner_id] = teamName(latest.users, r);
+  const latestLabel = {};
+  for (const r of latest.rosters) {
+    if (r.owner_id) currentName[r.owner_id] = teamName(latest.users, r);
+    latestLabel[r.roster_id] = teamName(latest.users, r);
+  }
   const managers = {};
   const pname = id => {
     const p = players[id];
@@ -72,6 +81,22 @@ function buildHistory(hist, current, players) {
     if (n) return { name: n[0], pos: n[1] };
     return { name: /^[A-Z]{2,3}$/.test(id) ? id + ' D/ST' : 'Player #' + id, pos: '' };
   };
+  // What did each draft pick turn into? For each season's rookie draft (or its only draft):
+  // the slot each team owned, and who was picked in each round/slot.
+  const draftBySeason = {};
+  for (const s of hist.seasons) {
+    for (const { draft, picks } of s.drafts || []) {
+      const rounds = (draft.settings && draft.settings.rounds) || 0;
+      const prev = draftBySeason[draft.season];
+      if (prev && rounds >= 10) continue; // prefer the rookie draft over a startup draft
+      const slotOf = {};
+      for (const slot in draft.slot_to_roster_id || {}) if (slot) slotOf[draft.slot_to_roster_id[slot]] = Number(slot);
+      const bySlot = {};
+      for (const pk of picks || []) bySlot[pk.round + '-' + pk.draft_slot] = pk;
+      draftBySeason[draft.season] = { slotOf, bySlot };
+    }
+  }
+
   const trades = [], moves = [];
   const journeys = {}; // player_id -> [{ date, season, kind, text }] (for the player panel)
   const step = (pid, ev) => (journeys[pid] = journeys[pid] || []).push(ev);
@@ -86,10 +111,25 @@ function buildHistory(hist, current, players) {
     }
     const team = rid => ({ rid, owner: ownerOf[rid] || '', name: label[rid] || 'Team ' + rid });
     // A draft pick: "2024 1st-round pick", plus whose pick it originally was (if not the receiver's own).
-    const pickInfo = p => ({
-      label: p.season + ' ' + roundName(p.round) + '-round pick',
-      from: p.roster_id !== p.owner_id ? (label[p.roster_id] || 'Team ' + p.roster_id) : '',
-    });
+    const pickInfo = p => {
+      const info = {
+        label: p.season + ' ' + roundName(p.round) + '-round pick',
+        from: p.roster_id !== p.owner_id ? (label[p.roster_id] || 'Team ' + p.roster_id) : '',
+        became: null, notYet: false,
+      };
+      const dr = draftBySeason[p.season];
+      if (!dr) { info.notYet = Number(p.season) >= Number(hist.seasons[0].season); return info; }
+      const slot = dr.slotOf[p.roster_id];
+      const made = slot && dr.bySlot[p.round + '-' + slot];
+      if (made) {
+        info.became = {
+          id: made.player_id, ...(made.player_id ? pname(made.player_id) : { name: 'no player picked', pos: '' }),
+          pick: p.round + '.' + String(slot).padStart(2, '0'),
+          by: made.roster_id !== p.owner_id ? (latestLabel[made.roster_id] || 'Team ' + made.roster_id) : '',
+        };
+      }
+      return info;
+    };
 
     // Drafts: "Drafted by X — 2023 rookie draft, pick 1.03"
     for (const { draft, picks } of s.drafts || []) {
@@ -156,7 +196,7 @@ function filterHistory(h, view, f) {
     return h.trades.filter(t =>
       (f.season === 'all' || t.season === f.season) &&
       (f.team === 'all' || t.sides.some(s => s.team.owner === f.team)) &&
-      (!q || t.sides.some(s => names(s.players).some(n => n.includes(q)) || s.picks.some(p => (p.label + ' ' + p.from).toLowerCase().includes(q)))));
+      (!q || t.sides.some(s => names(s.players).some(n => n.includes(q)) || s.picks.some(p => (p.label + ' ' + p.from + ' ' + (p.became ? p.became.name : '')).toLowerCase().includes(q)))));
   }
   return h.moves.filter(m =>
     (f.season === 'all' || m.season === f.season) &&

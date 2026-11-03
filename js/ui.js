@@ -535,7 +535,11 @@ function renderHistoryList(h, st) {
         const mine = sd.team.owner && sd.team.owner === me;
         const items = sd.players.map(p => '<div class="hrow">' + histPlayer(p) + '</div>')
           .concat(sd.picks.map(pk => '<div class="hrow"><span class="slot inline PICK">PICK</span> ' + esc(pk.label) +
-            (pk.from ? '<div class="pmeta small hfrom">originally ' + esc(pk.from) + '\'s</div>' : '') + '</div>'))
+            (pk.from ? '<div class="pmeta small hfrom">originally ' + esc(pk.from) + '\'s</div>' : '') +
+            (pk.became
+              ? '<div class="hbecame">→ became ' + (pk.became.id ? histPlayer(pk.became) : esc(pk.became.name)) + ' <span class="pmeta small">(pick ' + esc(pk.became.pick) +
+                  (pk.became.by ? ', drafted by ' + esc(pk.became.by) : '') + ')</span></div>'
+              : pk.notYet ? '<div class="pmeta small hfrom">→ not drafted yet</div>' : '') + '</div>'))
           .concat(sd.faab ? ['<div class="hrow">💰 $' + sd.faab + ' FAAB</div>'] : []);
         return '<div class="hblock' + (mine ? ' mine' : '') + '"><div class="hhead">' + esc(sd.team.name) + (mine ? ' <span class="pmeta">(you)</span>' : '') + ' receives</div>' +
           (items.join('') || '<div class="pmeta">nothing</div>') + '</div>';

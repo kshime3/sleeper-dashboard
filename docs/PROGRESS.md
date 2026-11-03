@@ -65,4 +65,6 @@
 
 - Added **player journey** to the player panel (owner asked): "His journey in [league]" — 🎓 drafted (draft + pick), 🔁 traded (from/to), 📥 waiver claim ($bid), 🆓 free-agent pickup, 🗑️ dropped, 🛠️ commissioner, then 📍 where he is now. Uses League history (now also downloads each season's drafts, saved for good); if history isn't loaded yet the panel shows a Load history button. Standings card and panel share the same loaded history.
 
+- Traded draft picks in League history now show **what they became** (owner asked): "→ became WR Xavier Worthy (pick 1.06)", plus "drafted by X" if the pick changed hands again, or "→ not drafted yet". Matched via each draft's slot_to_roster_id (from /draft/<id>, saved for good) and its picks. MFFL Dynasty: all 200 traded picks accounted for (180 used, 20 future). Searching a player also finds trades of the pick that became him.
+
 **Next:** owner tests; more history ideas in docs/IDEAS.md (records/champions, trades in hindsight, drafts); ESPN leagues when the owner follows up.

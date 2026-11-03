@@ -288,3 +288,6 @@ body.sheet-open { overflow: hidden; }
 .jstep { display: grid; grid-template-columns: 28px 1fr; gap: 6px; padding: 5px 0; font-size: 14px; margin-left: -17px; }
 .jicon { background: var(--card); width: 26px; text-align: center; }
 .jstep.now { color: var(--accent); }
+
+.hbecame { margin-left: 44px; font-size: 13px; color: var(--accent); }
+.hbecame .hp { font-size: 13px; color: var(--text); }
