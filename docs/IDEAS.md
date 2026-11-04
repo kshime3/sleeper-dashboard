@@ -45,7 +45,7 @@ Let friends use the same link with their own leagues.
 
 The owner has two teams in ESPN leagues and wants them in the dashboard next to the Sleeper leagues.
 
-**Status:** waiting for the owner to send the two league IDs (the number after `leagueId=` in the ESPN website address). Both leagues are **private**.
+**Status (2026-11-04):** owner sent the leagues — **59081 (owner's team #7)** and **903211 (owner's team #6)**, both private, season 2026 — and chose **(a) the free relay**. Relay code: `tools/espn-relay.js` (Cloudflare Worker; secrets ESPN_S2/SWID live only in Cloudflare; LEAGUES allow-list; read-only). Waiting on: owner creates the Worker and sends its address; `lm-api-reads.fantasy.espn.com` + the worker's address allowed in the cloud environment for testing.
 
 **The catch with private leagues:** ESPN only lets outside apps read a private league with the owner's login cookies (`espn_s2` and `SWID`). A web page like ours can't send those cookies to ESPN, so we need one of:
 
