@@ -319,7 +319,9 @@ function renderTradeDynamic(t) {
   const positions = t.positions.concat(t.hasPicks ? ['PICK'] : []);
   const pos = ['ALL'].concat(positions).includes(t.pos) ? t.pos : 'ALL';
   const chip = (val, label) => '<button class="fchip' + (pos === val ? ' on' : '') + '" data-tpos="' + val + '">' + label + '</button>';
-  return tradeResult(t.cmp) + ideasCard(t.ideas, t) +
+  // "Clear picks" lives here so it appears as soon as you pick someone (this part redraws on every tap)
+  const clear = t.state.give.length || t.state.get.length ? '<div class="clear-row"><button class="link" data-treset="picks">✕ Clear picks</button></div>' : '';
+  return clear + tradeResult(t.cmp) + ideasCard(t.ideas, t) +
     '<div class="filters">' + chip('ALL', 'All') + positions.map(p => chip(p, p === 'PICK' ? 'Picks' : p)).join('') + '</div>' +
     pickList('Your players', t.myIds, t.values, t.state.give, 'give', pos) +
     (t.oppName ? pickList(t.oppName + '\'s players', t.oppIds, t.values, t.state.get, 'get', pos) : '');
@@ -338,7 +340,7 @@ function renderTrade(t) {
     '</select>' +
     '<input type="search" class="tfind" data-tfind placeholder="🔎 Find a player on another team…" autocomplete="off">' +
     '<div id="tfind-results"></div>' +
-    (t.state.give.length || t.state.get.length ? '<button class="link" data-treset="picks">Clear picks</button>' : '') + '</div>' +
+    '</div>' +
     '<div id="trade-dyn">' + renderTradeDynamic(t) + '</div>' +
     '<div class="card"><details class="tsettings"><summary>How values work · adjust</summary>' +
       (t.fpAvailable

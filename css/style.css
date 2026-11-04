@@ -477,3 +477,4 @@ h1 .hq { color: var(--accent); }
 @media (prefers-color-scheme: light) {
   .score .vs, .card h2::before { color: #a86a00; }
 }
+.clear-row { text-align: right; margin: -4px 4px 4px; }

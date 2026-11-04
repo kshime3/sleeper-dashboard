@@ -50,15 +50,23 @@ function seasonLine(seasonStats, id, scoring, pos) {
 // points.weeks = the recent weeks available (newest first).
 
 // Slow way: from Sleeper's raw stats (a few MB). Used if the pre-built file isn't available.
-function pointsFromRaw(seasonStats, weekStats, scoring, players) {
+// scorer (optional): (stats, pos, isSeason) -> points, for leagues not scored the Sleeper way (ESPN).
+function pointsFromRaw(seasonStats, weekStats, scoring, players, scorer) {
   const pos = id => (players[id] ? players[id].pos : '');
+  const score = scorer || ((s, p) => fantasyPoints(s, scoring, p));
   return {
     weeks: weekStats.map(w => w.week),
-    season: id => seasonLine(seasonStats, id, scoring, pos(id)),
+    season(id) {
+      if (!scorer) return seasonLine(seasonStats, id, scoring, pos(id));
+      const s = seasonStats[id];
+      if (!s) return { total: 0, games: 0, ppg: 0 };
+      const total = score(s, pos(id), true), games = s.gp || 0;
+      return { total, games, ppg: games ? Math.round(total / games * 10) / 10 : 0 };
+    },
     week(w, id) {
       const ws = weekStats.find(x => x.week === w);
       const s = ws && ws.stats && ws.stats[id];
-      return s && s.gp ? fantasyPoints(s, scoring, pos(id)) : null;
+      return s && s.gp ? score(s, pos(id), false) : null;
     },
   };
 }
@@ -103,12 +111,14 @@ async function loadPoints(league, season, week, players) {
     pointsCache[id] = (async () => {
       const weeks = recentWeeks(week, CONFIG.trade.recentWeeks);
       const built = await loadBuiltStats();
-      if (built && String(built.season) === String(season) && built.week === week && built.leagues && built.leagues[id]) {
+      if (!isEspn(league) && built && String(built.season) === String(season) && built.week === week && built.leagues && built.leagues[id]) {
         return pointsFromBuilt(built.leagues[id], built.weeks);
       }
       const [seasonStats, ...weekly] = await Promise.all([loadStats(season, 0)]
         .concat(weeks.map(w => loadStats(season, w).catch(() => ({})))));
-      return pointsFromRaw(seasonStats, weeks.map((w, i) => ({ week: w, stats: weekly[i] })), league.scoring_settings || {}, players);
+      // ESPN leagues: same stats, scored with the league's ESPN rules (js/espn.js)
+      const scorer = isEspn(league) ? espnScorer(await loadEspnExtras(league)) : null;
+      return pointsFromRaw(seasonStats, weeks.map((w, i) => ({ week: w, stats: weekly[i] })), league.scoring_settings || {}, players, scorer);
     })().catch(err => { delete pointsCache[id]; throw err; });
   }
   return pointsCache[id];

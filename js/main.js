@@ -86,10 +86,13 @@ async function showLeague() {
       return;
     }
 
-    if (isEspn(league) && (tab === 'trade' || tab === 'waivers')) {
-      view.innerHTML = '<div class="card"><div class="chalk-msg" style="padding:10px 0">🏈 Sleeper leagues only (for now)<span class="sub">' +
-        (tab === 'trade' ? 'Trade values and ideas' : 'The waiver wire') + ' use Sleeper data. For ESPN leagues you get My Team, Game Day and Standings.</span></div></div>';
-      return;
+    // ESPN leagues need their scoring rules + FAAB before Waivers/Trade (two small downloads, once)
+    if (isEspn(league) && (tab === 'trade' || tab === 'waivers') && !league.espnRules) {
+      view.innerHTML = chalkMsg('📋 Reading the ESPN rulebook…', 'Loading ' + league.name + ' scoring');
+      await loadEspnExtras(league);
+      if (!stillHere()) return;
+      app.leagueData[league.league_id] = Object.assign(await loadLeague(league, week), app.uiKeep[league.league_id] || {});
+      return showLeague();
     }
 
     if (tab === 'trade') {
@@ -97,7 +100,7 @@ async function showLeague() {
         view.innerHTML = chalkMsg('📼 Reviewing the tape…', 'Loading stats');
         d.points = await loadPoints(league, app.me.season, week, app.players);
         app.fp = await loadDynastyValues();
-        d.tradedPicks = leagueFormat(league) === 'dynasty'
+        d.tradedPicks = leagueFormat(league) === 'dynasty' && !isEspn(league)
           ? await getJSON(SLEEPER + '/league/' + league.league_id + '/traded_picks').catch(() => []) : [];
         d.tradeExtrasLoaded = true;
       }
@@ -170,7 +173,7 @@ function buildTrade(league, d) {
   }, settings);
   // Dynasty + FantasyPros: add each team's draft picks to its list.
   const fpOn = usesFP(league, settings, app.fp);
-  const picks = fpOn ? draftPickValues({ league, rosters: d.rosters, users: d.users, tradedPicks: d.tradedPicks, fp: app.fp }) : {};
+  const picks = fpOn && !isEspn(league) ? draftPickValues({ league, rosters: d.rosters, users: d.users, tradedPicks: d.tradedPicks, fp: app.fp }) : {};
   Object.assign(values, picks);
   const picksOf = rosterId => Object.keys(picks).filter(id => picks[id].owner === rosterId)
     .sort((a, b) => picks[b].value - picks[a].value);
@@ -564,9 +567,7 @@ async function openPlayer(id) {
         return r && (r.players || []).includes(id);
       }) || league;
     }
-    // ESPN leagues: no Sleeper-scored points or league history; use your first Sleeper league for points.
-    if (isEspn(league)) league = app.me.leagues.find(l => !isEspn(l) && !isGuillotine(l)) || league;
-    const points = isEspn(league) ? null : await loadPoints(league, app.me.season, week, app.players);
+    const points = await loadPoints(league, app.me.season, week, app.players);
     draw(points, league);
   } catch (e) {
     draw(null, null);
