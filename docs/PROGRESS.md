@@ -83,4 +83,6 @@
 
 - **ESPN leagues**: owner sent 59081 (League of Average Gentlemen XII, "Burrow My CookNer") and 903211 (The Shiva Dynasty - Year 13, "The Replacements"), chose the free Cloudflare relay, created it (espn-relay.kshime3.workers.dev) with their cookies as secrets. Added a compact /summary route to the relay (5–6 MB → 16–19 KB; finds the owner's team from SWID) and js/espn.js: both leagues appear in the picker ("· ESPN"), My Team (lineup, live points, flags, games), Game Day, jumbotron, Standings + recap, player panel; live refresh; Trade/Waivers show "Sleeper leagues only (for now)", History hidden. All ESPN players matched to Sleeper players (name+pos, team tie-break, last-name fallback for nicknames). Tested against a local copy of the updated relay. **Owner must re-paste tools/espn-relay.js into Cloudflare** for it to go live.
 
-**Next:** owner updates the relay code in Cloudflare and tests ESPN leagues; remaining history idea in docs/IDEAS.md (browse drafts).
+- Owner re-pasted the relay in Cloudflare. Checked live: /summary returns 16 KB / 19 KB, finds the owner's team in both leagues, allows only https://kshime3.github.io (a localhost test page is refused, as intended). Full app test through the real relay: both ESPN leagues in the picker, My Team, Standings + recap, Game Day (5 cards), jumbotron (5 leagues), player panel; all ESPN players matched; no errors.
+
+**Next:** owner tests ESPN leagues on the phone; remaining history idea in docs/IDEAS.md (browse drafts); possible later: ESPN waivers/trade/history.
