@@ -14,7 +14,7 @@ The owner is not very technical. Same working style as their Chained Dice projec
 - Every setting you might tune lives in `js/config.js`.
 - Explain things in plain language. Ask before big decisions.
 - **Cache-busting:** index.html loads every CSS/JS file with `?v=YYYYMMDDx`. When changing css/ or js/, bump that tag everywhere in index.html (one sed).
-- **Keep "share with friends" possible** (parked plan in `docs/IDEAS.md`: friends enter their own Sleeper username). Before any change, check whether it would make that harder, e.g. new hard-coded owner details (username, league names/IDs), phone storage not keyed per user, or data built only for the owner's leagues. Prefer the friend-friendly way when it costs little; if it doesn't, tell the owner the trade-off before building, and note it in `docs/IDEAS.md`. (Already owner-only today: `CONFIG.username`, `CONFIG.leagueNotes`, `tools/build-data.js` points for the owner's leagues; ESPN leagues will stay owner-only.)
+- **Keep "share with friends" possible** (parked plan in `docs/IDEAS.md`: friends enter their own Sleeper username). Before any change, check whether it would make that harder, e.g. new hard-coded owner details (username, league names/IDs), phone storage not keyed per user, or data built only for the owner's leagues. Prefer the friend-friendly way when it costs little; if it doesn't, tell the owner the trade-off before building, and note it in `docs/IDEAS.md`. (Already owner-only today: `CONFIG.username`, `CONFIG.leagueNotes`, `CONFIG.espn` (relay + ESPN leagues), `tools/build-data.js` points for the owner's leagues.)
 - GitHub Pages shares one web address (kshime3.github.io) with Chained Dice, so phone storage is shared too: keep saved data small (the trimmed player list is ~200 KB) and prefix keys with `sd_`.
 
 ## Data sources
@@ -30,6 +30,7 @@ The owner is not very technical. Same working style as their Chained Dice projec
 - **Saved copies / offline:** every download goes through `cachedJSON` (js/sleeper.js), which also stores it in Cache Storage (`sd-data-v1`, not localStorage). On open, `reloadAll` draws once from saved copies (`NET.mode = 'cache'`, instant), then loads live and redraws; with no signal the saved copy is used and the status says Offline. Anything started in the cache pass must finish before the live pass (allSettled), or it will run in network mode.
 
 - **League history:** `/league/<id>` (previous_league_id chain), `/league/<id>/users|rosters|drafts|transactions/<round 0-18>` `/draft/<id>/picks` and `/draft/<id>` (its `slot_to_roster_id` — not in the league's drafts list — says which slot was whose, so a traded pick {season, round, original roster_id} → slot → the player picked) per season. MFFL Dynasty: 8 seasons (2019–2026), 93 trades, 1,834 transactions. History state lives in `app.history[leagueId]` (not leagueData) so refreshes don't lose it. Playwright may report each request twice once the service worker is active; count real fetches in the page instead.
+- **ESPN fantasy leagues (owner-only):** relay `https://espn-relay.kshime3.workers.dev` (Cloudflare Worker from tools/espn-relay.js; the owner must re-paste it there whenever that file changes). Leagues 59081 (League of Average Gentlemen, team 7) and 903211 (The Shiva Dynasty, team 6). Supported: My Team, Game Day, Standings + recap (past weeks: scores only), jumbotron, player panel. Waivers/Trade/History: Sleeper only for now. If the relay is down, ESPN leagues just don't appear.
 - **ESPN scoreboard** `site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?seasontype=2&week=<w>&dates=<season>` — unofficial, free, CORS allowed. Team code fix: ESPN WSH = Sleeper WAS. ESPN returns 403 to headless browsers: Playwright tests must set a phone userAgent AND `extraHTTPHeaders: {'sec-ch-ua': '"Chromium";v="140", "Google Chrome";v="140"'}`. Failures are quiet (don't mark the app Offline).
 - **Live scores:** while any game is live and My Team or Game Day is open, `refreshLive` (main.js) re-downloads matchups/rosters (this league, or every league on Game Day) + the scoreboard every `CONFIG.liveRefreshSeconds`; paused in the background.
 
@@ -51,6 +52,7 @@ css/style.css         colors and layout (dark by default, light if the phone is 
 img/icon.svg          the icon; icon-*.png are renders of it
 js/config.js          ALL settings (username, cache times, league notes, lineup slots, injury tags)
 js/sleeper.js         logic: Sleeper API calls, saved player list (refreshed at most daily), schedule/byes
+js/espn.js            logic: ESPN leagues via the owner's relay (CONFIG.espn) → same shapes as Sleeper leagues (league/rosters/users/matchups); ESPN players matched to Sleeper ids by name+position(+team, last-name fallback)
 js/stats.js           logic: season/weekly stats and league-scored fantasy points
 js/games.js           logic: this week's NFL games (ESPN scoreboard: kickoff, quarter/clock, score; Sleeper schedule as backup)
 js/myteam.js          logic: My Team (lineup, matchup, guillotine status, flags, bench swap ideas)
@@ -68,6 +70,7 @@ docs/IDEAS.md         parked ideas (ESPN leagues, sharing with friends)
 data/dynasty-values.json   FantasyPros dynasty values (written by the updater, don't edit by hand)
 tools/update-dynasty.js    the updater (Node, no installs needed)
 .github/workflows/dynasty-values.yml   runs the updater daily on GitHub
+tools/espn-relay.js        Cloudflare Worker (owner pastes it at dash.cloudflare.com; secrets ESPN_S2/SWID + LEAGUES live there): /summary/<season>/<league> = compact ~20 KB league summary; /league/... = raw read-only pass-through
 tools/build-data.js        builds data/players.json + data/stats.json + data/names.json (retired players' names, for League history; not in git; built on GitHub)
 .github/workflows/publish.yml          publishes the site hourly + on every push, after build-data
 ```

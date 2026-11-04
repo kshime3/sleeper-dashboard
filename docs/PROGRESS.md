@@ -81,4 +81,6 @@
 
 - 2026-11-04: November 2026 FantasyPros dynasty values published (owner noticed before the daily robot ran). Ran the updater by hand: 299/299 matched after adding a nickname fallback to tools/update-dynasty.js (last name + position + team when unique; "Bam Knight" = Sleeper's Zonovan Knight).
 
-**Next:** owner tests the theme; remaining history idea in docs/IDEAS.md (browse drafts); ESPN leagues when the owner follows up.
+- **ESPN leagues**: owner sent 59081 (League of Average Gentlemen XII, "Burrow My CookNer") and 903211 (The Shiva Dynasty - Year 13, "The Replacements"), chose the free Cloudflare relay, created it (espn-relay.kshime3.workers.dev) with their cookies as secrets. Added a compact /summary route to the relay (5–6 MB → 16–19 KB; finds the owner's team from SWID) and js/espn.js: both leagues appear in the picker ("· ESPN"), My Team (lineup, live points, flags, games), Game Day, jumbotron, Standings + recap, player panel; live refresh; Trade/Waivers show "Sleeper leagues only (for now)", History hidden. All ESPN players matched to Sleeper players (name+pos, team tie-break, last-name fallback for nicknames). Tested against a local copy of the updated relay. **Owner must re-paste tools/espn-relay.js into Cloudflare** for it to go live.
+
+**Next:** owner updates the relay code in Cloudflare and tests ESPN leagues; remaining history idea in docs/IDEAS.md (browse drafts).

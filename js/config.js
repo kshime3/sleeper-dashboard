@@ -60,6 +60,16 @@ const CONFIG = {
     },
   },
 
+  // Your ESPN leagues (read through your private relay, tools/espn-relay.js on Cloudflare).
+  // Owner-only: they need the owner's ESPN login, which lives only in Cloudflare.
+  espn: {
+    relay: 'https://espn-relay.kshime3.workers.dev',
+    leagues: [
+      { id: 59081, short: 'Gentlemen' },                  // League of Average Gentlemen (your team #7)
+      { id: 903211, short: 'Shiva', format: 'dynasty' },  // The Shiva Dynasty (your team #6)
+    ],
+  },
+
   // Your notes about each league (matched by league name). Sleeper's own settings
   // don't always say this clearly, so we write it down.
   leagueNotes: {

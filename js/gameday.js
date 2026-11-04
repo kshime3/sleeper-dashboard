@@ -1,6 +1,7 @@
 // Logic: the Game Day tab — all of your players from every league on one screen, with live games.
 
 function leagueShortName(league) {
+  if (league.short) return league.short;
   const note = CONFIG.leagueNotes[league.name];
   if (note && note.short) return note.short;
   if (isGuillotine(league)) return '🪓';

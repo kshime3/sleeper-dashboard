@@ -75,12 +75,20 @@ async function showLeague() {
       d.recapMatchups = d.recapMatchups || { [week]: d.matchups };
       if (!d.recapMatchups[rw] && rw > 0) {
         view.innerHTML = renderStandings(st, null, league, weeks, rw, week);
-        d.recapMatchups[rw] = await getJSON(SLEEPER + '/league/' + league.league_id + '/matchups/' + rw);
+        d.recapMatchups[rw] = isEspn(league) ? espnMatchups(league.espn, d.rosters, rw)
+          : await getJSON(SLEEPER + '/league/' + league.league_id + '/matchups/' + rw);
         if (!stillHere()) return;
       }
       const recap = rw > 0 ? weeklyRecap({ league, rosters: d.rosters, users: d.users, matchups: d.recapMatchups[rw] || [], players: app.players, week: rw }) : { empty: true, week: rw };
       d.recapCache = { recap, league };
-      view.innerHTML = renderStandings(st, recap, league, weeks, rw, week) + renderHistory(histFor(league.league_id));
+      view.innerHTML = renderStandings(st, recap, league, weeks, rw, week) +
+        (isEspn(league) ? '<div class="card"><h2>📜 League history</h2><div class="pmeta">League history is for Sleeper leagues for now.</div></div>' : renderHistory(histFor(league.league_id)));
+      return;
+    }
+
+    if (isEspn(league) && (tab === 'trade' || tab === 'waivers')) {
+      view.innerHTML = '<div class="card"><div class="chalk-msg" style="padding:10px 0">🏈 Sleeper leagues only (for now)<span class="sub">' +
+        (tab === 'trade' ? 'Trade values and ideas' : 'The waiver wire') + ' use Sleeper data. For ESPN leagues you get My Team, Game Day and Standings.</span></div></div>';
       return;
     }
 
@@ -420,7 +428,7 @@ function fillLeaguePicker() {
   // Guillotine leagues go last (you're usually eliminated there; still handy for standings and recaps).
   app.me.leagues.sort((a, b) => isGuillotine(a) - isGuillotine(b));
   sel.innerHTML = app.me.leagues.map(l =>
-    '<option value="' + esc(l.league_id) + '">' + esc(l.name) + '</option>').join('');
+    '<option value="' + esc(l.league_id) + '">' + esc(l.name) + (isEspn(l) ? ' · ESPN' : '') + '</option>').join('');
   const remembered = Store.get('sd_league');
   app.leagueId = app.me.leagues.some(l => l.league_id === remembered) ? remembered : (app.me.leagues[0] || {}).league_id;
   sel.value = app.leagueId;
@@ -534,11 +542,12 @@ async function openPlayer(id) {
   const draw = (points, pointsLeague) => {
     if (sheetPid !== id) return;
     lastPoints = points; lastLeague = pointsLeague;
-    const jl = pointsLeague || currentLeague();
+    const jl0 = pointsLeague || currentLeague();
+    const jl = isEspn(jl0) ? null : jl0;
     body.innerHTML = renderPlayerSheet(playerDetails({
       id, players: app.players, games: app.games, leagues: app.me.leagues, leagueData: app.leagueData,
       userId: app.me.user.user_id, points, pointsLeague,
-      journeyLeague: jl, history: app.history[jl.league_id] || null,
+      journeyLeague: jl, history: jl ? (app.history[jl.league_id] || null) : null,
     }));
   };
   sheetRedraw = () => draw(lastPoints, lastLeague);
@@ -555,7 +564,9 @@ async function openPlayer(id) {
         return r && (r.players || []).includes(id);
       }) || league;
     }
-    const points = await loadPoints(league, app.me.season, week, app.players);
+    // ESPN leagues: no Sleeper-scored points or league history; use your first Sleeper league for points.
+    if (isEspn(league)) league = app.me.leagues.find(l => !isEspn(l) && !isGuillotine(l)) || league;
+    const points = isEspn(league) ? null : await loadPoints(league, app.me.season, week, app.players);
     draw(points, league);
   } catch (e) {
     draw(null, null);
@@ -631,15 +642,28 @@ async function refreshLive() {
   if (!ids.length || !app.leagueData[ids[0]]) return scheduleLive();
   try {
     const week = currentWeek();
-    const [games, ...fresh] = await Promise.all([loadGames(app.me.season, week)].concat(ids.map(id => Promise.all([
-      getJSON(SLEEPER + '/league/' + id + '/matchups/' + week),
-      getJSON(SLEEPER + '/league/' + id + '/rosters'),
-    ]))));
+    const leagueOf = id => app.me.leagues.find(l => l.league_id === id);
+    const [games, ...fresh] = await Promise.all([loadGames(app.me.season, week)].concat(ids.map(id => {
+      const lg = leagueOf(id);
+      if (isEspn(lg)) {
+        // ESPN: fetch a fresh summary from the relay and rebuild the league from it
+        return loadEspnSummary(lg.espnId, app.me.season).then(sum => {
+          lg.espn = sum;
+          const a = adaptEspnLeague(lg, sum, app.players, app.me.user.user_id);
+          return [a.matchups, a.rosters, a.users];
+        });
+      }
+      return Promise.all([
+        getJSON(SLEEPER + '/league/' + id + '/matchups/' + week),
+        getJSON(SLEEPER + '/league/' + id + '/rosters'),
+      ]);
+    })));
     app.games = games;
     ids.forEach((id, i) => {
       const d = app.leagueData[id];
       if (!d) return;
       d.matchups = fresh[i][0]; d.rosters = fresh[i][1];
+      if (fresh[i][2]) d.users = fresh[i][2];
       if (d.recapMatchups) d.recapMatchups[week] = d.matchups;
       d.waivers = null; // lineups may have changed
     });

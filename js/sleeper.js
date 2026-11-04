@@ -175,10 +175,15 @@ async function loadMe(username) {
     season = state.previous_season;
     leagues = await getJSON(SLEEPER + '/user/' + user.user_id + '/leagues/nfl/' + season);
   }
+  // Your ESPN leagues too (if any are set up). One failing doesn't stop the rest.
+  const espnCfg = (typeof CONFIG !== 'undefined' && CONFIG.espn && CONFIG.espn.leagues) || [];
+  const espnResults = await Promise.allSettled(espnCfg.map(cfg => loadEspnSummary(cfg.id, season)));
+  espnResults.forEach((r, i) => { if (r.status === 'fulfilled' && r.value && r.value.teams) leagues.push(espnLeagueObject(espnCfg[i], r.value)); });
   return { user, state, season, leagues };
 }
 
 async function loadLeague(league, week) {
+  if (isEspn(league)) return adaptEspnLeague(league, league.espn, app.players, app.me.user.user_id);
   const id = league.league_id;
   const [rosters, users, matchups] = await Promise.all([
     getJSON(SLEEPER + '/league/' + id + '/rosters'),

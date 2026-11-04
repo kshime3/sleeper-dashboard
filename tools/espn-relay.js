@@ -36,6 +36,19 @@ export default {
     const url = new URL(request.url);
     if (url.pathname === '/' || url.pathname === '/health') return reply(JSON.stringify({ ok: true, leagues: (env.LEAGUES || '').split(',') }), 200, { 'Content-Type': 'application/json' });
 
+    // Compact summary for the dashboard (~30 KB instead of ~5 MB): /summary/<season>/<leagueId>
+    const sm = url.pathname.match(/^\/summary\/(\d{4})\/(\d+)$/);
+    if (sm) {
+      const leaguesOk = (env.LEAGUES || '').split(',').map(s => s.trim()).filter(Boolean);
+      if (!leaguesOk.includes(sm[2])) return reply('This league is not on the relay\'s list', 403);
+      try {
+        const data = await summary(sm[1], sm[2], env);
+        return reply(JSON.stringify(data), 200, { 'Content-Type': 'application/json', 'Cache-Control': 'max-age=20' });
+      } catch (err) {
+        return reply(JSON.stringify({ error: err.message }), err.status || 502, { 'Content-Type': 'application/json' });
+      }
+    }
+
     const m = url.pathname.match(/^\/league\/(\d{4})\/(\d+)$/);
     if (!m) return reply('Not found', 404);
     const [, season, leagueId] = m;
@@ -63,3 +76,70 @@ export default {
     return reply(body, res.status, { 'Content-Type': 'application/json', 'Cache-Control': 'max-age=20' });
   },
 };
+
+// ---------- The compact summary ----------
+async function espn(season, leagueId, query, env) {
+  const res = await fetch('https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/' + season + '/segments/0/leagues/' + leagueId + '?' + query, {
+    headers: { Cookie: 'espn_s2=' + env.ESPN_S2 + '; SWID=' + env.SWID, Accept: 'application/json', 'User-Agent': 'Mozilla/5.0 (fantasy dashboard relay)' },
+  });
+  if (res.status === 401 || res.status === 403) {
+    const e = new Error('ESPN refused the cookies — they may have expired. Log in to ESPN again and update ESPN_S2 / SWID in Cloudflare.');
+    e.status = 401; throw e;
+  }
+  if (!res.ok) { const e = new Error('ESPN answered ' + res.status); e.status = 502; throw e; }
+  return res.json();
+}
+
+async function summary(season, leagueId, env) {
+  const base = await espn(season, leagueId, 'view=mSettings&view=mTeam&view=mMatchupScore&view=mStatus', env);
+  const st = base.status || {};
+  const week = st.currentMatchupPeriod || 1;
+  const sp = st.latestScoringPeriod || base.scoringPeriodId || week;
+  const box = await espn(season, leagueId, 'view=mBoxscore&view=mMatchupScore&scoringPeriodId=' + sp, env);
+  const s = base.settings || {};
+  const swid = (env.SWID || '').toUpperCase();
+  const members = {};
+  for (const m of base.members || []) members[m.id] = m.displayName || ((m.firstName || '') + ' ' + (m.lastName || '')).trim();
+  const teams = (base.teams || []).map(t => {
+    const r = (t.record && t.record.overall) || {};
+    return {
+      id: t.id, name: t.name || ((t.location || '') + ' ' + (t.nickname || '')).trim(), abbrev: t.abbrev,
+      owner: t.primaryOwner || (t.owners || [])[0] || '', ownerName: members[t.primaryOwner || (t.owners || [])[0]] || '',
+      mine: (t.owners || []).some(o => String(o).toUpperCase() === swid),
+      w: r.wins || 0, l: r.losses || 0, t: r.ties || 0, pf: r.pointsFor || 0, pa: r.pointsAgainst || 0,
+      streak: r.streakLength ? (r.streakType === 'WIN' ? 'W' : r.streakType === 'LOSS' ? 'L' : 'T') + r.streakLength : '',
+      seed: t.playoffSeed || 0,
+    };
+  });
+  const schedule = (base.schedule || []).map(m => ({
+    w: m.matchupPeriodId, h: m.home ? m.home.teamId : null, hp: m.home ? m.home.totalPoints : 0,
+    a: m.away ? m.away.teamId : null, ap: m.away ? m.away.totalPoints : 0, winner: m.winner || 'UNDECIDED',
+  }));
+  // This week's lineups, live points and projections, per team.
+  const live = {};
+  for (const m of box.schedule || []) {
+    if (m.matchupPeriodId !== week) continue;
+    for (const side of [m.home, m.away]) {
+      if (!side || !side.rosterForCurrentScoringPeriod) continue;
+      live[side.teamId] = {
+        pts: side.totalPointsLive != null ? side.totalPointsLive : side.totalPoints,
+        proj: side.totalProjectedPointsLive != null ? Math.round(side.totalProjectedPointsLive * 100) / 100 : null,
+        winProb: side.winProbability != null ? side.winProbability : null,
+        roster: side.rosterForCurrentScoringPeriod.entries.map(e => {
+          const pe = e.playerPoolEntry || {}, p = pe.player || {};
+          const projStat = (p.stats || []).find(x => x.statSourceId === 1 && x.scoringPeriodId === sp);
+          return [e.playerId, p.fullName || '', p.defaultPositionId || 0, p.proTeamId || 0, e.lineupSlotId,
+            Math.round((pe.appliedStatTotal || 0) * 100) / 100, projStat ? Math.round(projStat.appliedTotal * 100) / 100 : null];
+        }),
+      };
+    }
+  }
+  return {
+    v: 1, source: 'espn', id: base.id, season: Number(season), name: s.name || ('ESPN league ' + leagueId), size: s.size || teams.length,
+    week, scoringPeriod: sp, finalWeek: st.finalScoringPeriod || 17,
+    regWeeks: (s.scheduleSettings && s.scheduleSettings.matchupPeriodCount) || 14,
+    playoffTeams: (s.scheduleSettings && s.scheduleSettings.playoffTeamCount) || 0,
+    slots: (s.rosterSettings && s.rosterSettings.lineupSlotCounts) || {},
+    teams, schedule, live,
+  };
+}
