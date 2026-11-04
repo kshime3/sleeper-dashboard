@@ -101,12 +101,15 @@ async function main() {
   if (charts.length < 4) throw new Error('Expected 4 position charts, found ' + charts.length);
 
   const sleeper = await (await fetch('https://api.sleeper.app/v1/players/nfl')).json();
-  const index = {};
+  const index = {}, byLast = {};
   for (const id in sleeper) {
     const p = sleeper[id];
     if (!p.active && !p.team) continue;
     for (const pos of new Set([p.position].concat(p.fantasy_positions || []))) {
       (index[norm(p.full_name || '') + '|' + pos] = index[norm(p.full_name || '') + '|' + pos] || []).push({ id, team: p.team });
+      // Backup: last name + position + team, for nicknames (FantasyPros "Bam Knight" = Sleeper "Zonovan Knight")
+      const lastKey = norm(p.last_name || '') + '|' + pos + '|' + p.team;
+      (byLast[lastKey] = byLast[lastKey] || []).push({ id, team: p.team });
     }
   }
 
@@ -119,6 +122,11 @@ async function main() {
       if (/^all other/i.test(r.Name)) { others[c.pos] = { v: value, sf, tep }; continue; }
       let found = index[norm(r.Name) + '|' + c.pos] || [];
       if (found.length > 1) found = found.filter(f => f.team === (TEAM_FIX[r.Team] || r.Team));
+      if (!found.length) {
+        // Nickname? Try last name + position + team (only if exactly one player fits).
+        const words = r.Name.replace(/\b(Jr|Sr|II|III|IV|V)\.?$/i, '').trim().split(/\s+/);
+        found = byLast[norm(words[words.length - 1]) + '|' + c.pos + '|' + (TEAM_FIX[r.Team] || r.Team)] || [];
+      }
       if (found.length !== 1) { unmatched.push(r.Name + ' (' + c.pos + ', ' + r.Team + ')'); continue; }
       players[found[0].id] = { n: r.Name, pos: c.pos, v: value, sf, tep, chg: r['Value Change'] || '' };
     }
