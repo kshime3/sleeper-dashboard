@@ -88,3 +88,6 @@
 - Owner tested ESPN leagues on the phone: works. Added **ESPN to Waivers and Trade**: translated ESPN scoring codes to Sleeper stats (matched player by player for week 8: 458/458 exact after fixing shutouts — Sleeper omits pts_allow when it's 0); Waivers (weak spots incl. K/DEF, free agents = players on no roster in that ESPN league, trending = Sleeper-wide adds, FAAB: Shiva $42 of $100, Gentlemen doesn't use FAAB); Trade (formula values in Gentlemen, FantasyPros values in Shiva Dynasty, ideas + reverse ideas, no picks); player panel shows points in the ESPN league's scoring. Fixed: "Clear picks" now appears as soon as you pick a player.
 
 **Next:** owner tests ESPN Waivers/Trade; remaining: ESPN league history (would need ESPN transactions), browse drafts (docs/IDEAS.md).
+
+## 2026-11-11
+- Owner saw a failed "Publish site" run (02:01 UTC). Cause: a GitHub-side hiccup — the site package uploaded fine, then GitHub's deploy step couldn't find it ("Fetching artifact metadata failed. Is githubstatus.com reporting issues…"). No code change involved; re-ran it and it succeeded. Hourly runs before and after were fine. The "Node.js 20 is deprecated" warning is GitHub updating its own tools; harmless.
